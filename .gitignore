@@ -1,0 +1,37 @@
+# Ortam ve gizli dosyalar
+.env
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Veri indeksleri ve işlenmiş çıktılar (repoda tutulmaz)
+data/chroma/
+data/bm25/
+data/processed/
+!data/processed/.gitkeep
+!data/processed/chunks/.gitkeep
+*.pkl
+
+# Ham PDF'ler public repoya gitmesin; demo Markdown samples git'te kalır
+data/raw/pdf/*.pdf
+!data/raw/pdf/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Docker
+*.log
+context.md

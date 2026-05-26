@@ -1,0 +1,67 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: university-ai-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-uni_agent}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-uni_agent_db}
+    volumes:
+      - ./data:/app/data
+      - ./backend:/app/backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: university-ai-frontend
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      - BACKEND_URL=http://backend:8000
+    volumes:
+      - ./frontend:/app/frontend
+    depends_on:
+      - backend
+    command: streamlit run frontend/streamlit_app.py --server.port=8501 --server.address=0.0.0.0
+
+  redis:
+    image: redis:7-alpine
+    container_name: university-ai-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: university-ai-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-uni_agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-uni_agent_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uni_agent -d uni_agent_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

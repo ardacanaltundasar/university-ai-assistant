@@ -1,0 +1,3 @@
+# Alembic migration dosyaları buraya eklenir.
+# İlk kurulumda tablolar startup'ta create_all ile oluşturulur.
+# Şema değişikliği için: alembic revision --autogenerate -m "mesaj"
