@@ -12,13 +12,20 @@ class AgentState(TypedDict, total=False):
     # Girdi
     question: str
 
-    # analyze_question
+    # analyze_question / intent
     original_question: str
     normalized_question: str
     category: str
     needs_clarification: bool
     out_of_scope: bool
     out_of_scope_reason: str
+    intent: str
+    intent_reason: str
+    selected_tool: str
+
+    # agent tooling
+    agent_steps: Annotated[list[str], operator.add]
+    tool_calls_log: list[dict]
 
     # route_question
     search_gold_faq: bool

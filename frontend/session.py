@@ -25,6 +25,8 @@ def init_session_state() -> None:
         st.session_state.chat_sessions = []
     if "pending_question" not in st.session_state:
         st.session_state.pending_question = None
+    if "flash_message" not in st.session_state:
+        st.session_state.flash_message = None
 
 
 def reset_chat(*, clear_session_id: bool = True) -> None:
@@ -65,6 +67,7 @@ def append_assistant_message(
     citations: list[dict] | None = None,
     validation_warning: str | None = None,
     retrieval_debug: dict | None = None,
+    agent_steps: list[str] | None = None,
     message_id: str | None = None,
 ) -> None:
     st.session_state.messages.append(
@@ -74,6 +77,7 @@ def append_assistant_message(
             "citations": citations or [],
             "validation_warning": validation_warning,
             "retrieval_debug": retrieval_debug,
+            "agent_steps": agent_steps or [],
             "message_id": message_id,
         }
     )

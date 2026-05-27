@@ -24,6 +24,7 @@ from backend.app.db.schemas import (
     ChatSessionCreate,
     ChatSessionListResponse,
     ChatSessionOut,
+    DeleteSessionResponse,
     DocumentListResponse,
     DocumentMetadataOut,
     FeedbackCreate,
@@ -128,6 +129,21 @@ def list_chat_sessions(db: Session = Depends(require_db)) -> ChatSessionListResp
     return ChatSessionListResponse(
         sessions=[ChatSessionOut.model_validate(s) for s in sessions]
     )
+
+
+@router.delete(
+    "/chat/sessions/{session_id}",
+    response_model=DeleteSessionResponse,
+    tags=["chat"],
+)
+def delete_chat_session(
+    session_id: str,
+    db: Session = Depends(require_db),
+) -> DeleteSessionResponse:
+    sid = _parse_uuid(session_id, field="session_id")
+    if not crud.delete_chat_session(db, sid):
+        raise HTTPException(status_code=404, detail="Sohbet oturumu bulunamadı.")
+    return DeleteSessionResponse(success=True, message="Chat session deleted")
 
 
 @router.get(

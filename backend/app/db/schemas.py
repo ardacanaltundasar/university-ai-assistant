@@ -25,6 +25,11 @@ class ChatSessionListResponse(BaseModel):
     sessions: list[ChatSessionOut]
 
 
+class DeleteSessionResponse(BaseModel):
+    success: bool = True
+    message: str = "Chat session deleted"
+
+
 class ChatMessageOut(BaseModel):
     id: UUID
     session_id: UUID

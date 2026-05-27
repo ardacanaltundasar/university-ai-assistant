@@ -16,9 +16,13 @@ from backend.app.agent.nodes import (
     validate_answer,
 )
 from backend.app.agent.prompts import FALLBACK_MESSAGE
+from backend.app.agent.resource_nodes import (
+    run_resource_recommendation,
+    unsupported_intent_response,
+)
 from backend.app.agent.state import AgentState
 from backend.app.core.config import is_debug_retrieval_enabled
-from backend.app.api.schemas import ChatResponse, ConfidenceLevel
+from backend.app.api.schemas import ChatResponse, ConfidenceLevel, ToolCallLog
 from backend.app.services.citation_service import (
     build_citations,
     to_api_citations,
@@ -40,6 +44,8 @@ def build_graph():
     graph.add_node("generate_answer", generate_answer)
     graph.add_node("validate_answer", validate_answer)
     graph.add_node("fallback_response", fallback_response)
+    graph.add_node("resource_recommendation", run_resource_recommendation)
+    graph.add_node("unsupported_intent", unsupported_intent_response)
 
     graph.add_edge(START, "analyze_question")
     graph.add_conditional_edges(
@@ -47,9 +53,14 @@ def build_graph():
         route_after_analyze,
         {
             "route_question": "route_question",
+            "resource_recommendation": "resource_recommendation",
+            "unsupported_intent": "unsupported_intent",
             "fallback_response": "fallback_response",
         },
     )
+    graph.add_edge("resource_recommendation", END)
+    graph.add_edge("unsupported_intent", END)
+
     graph.add_edge("route_question", "retrieve_documents")
     graph.add_edge("retrieve_documents", "grade_documents")
     graph.add_conditional_edges(
@@ -83,13 +94,38 @@ def get_compiled_graph():
     return _compiled_graph
 
 
+def _build_agent_steps(state: AgentState, steps: list[str]) -> list[str]:
+    agent_steps = list(state.get("agent_steps") or [])
+    for s in steps:
+        if s not in agent_steps:
+            agent_steps.append(s)
+    if not agent_steps or agent_steps[0] != "Soru alındı.":
+        agent_steps = ["Soru alındı.", *agent_steps]
+    return agent_steps
+
+
+def _tool_calls_from_state(state: AgentState) -> list[ToolCallLog]:
+    raw = state.get("tool_calls_log") or []
+    logs: list[ToolCallLog] = []
+    for item in raw:
+        if isinstance(item, dict):
+            logs.append(
+                ToolCallLog(
+                    tool_name=str(item.get("tool_name", "agent_step")),
+                    input_summary=item.get("input_summary"),
+                    output_summary=item.get("output_summary"),
+                    status=str(item.get("status", "completed")),
+                    duration_ms=item.get("duration_ms"),
+                )
+            )
+    return logs
+
+
 def state_to_chat_response(state: AgentState) -> ChatResponse:
     answer = state.get("answer") or FALLBACK_MESSAGE
     confidence: ConfidenceLevel = state.get("confidence") or "unknown"
     steps = state.get("steps") or ["Soru alındı."]
-
-    if not steps or steps[0] != "Soru alındı.":
-        steps = ["Soru alındı.", *steps]
+    agent_steps = _build_agent_steps(state, steps)
 
     stored = state.get("citations")
     if stored:
@@ -98,31 +134,33 @@ def state_to_chat_response(state: AgentState) -> ChatResponse:
         citations = build_citations(state.get("selected_documents") or [])
 
     if confidence in ("high", "medium") and not citations:
-        confidence = "low"
+        if state.get("selected_tool") == "rag_search":
+            confidence = "low"
 
     retrieval_debug = None
     if is_debug_retrieval_enabled():
         retrieval_debug = state.get("retrieval_debug")
 
     validation_warning = state.get("validation_warning")
+    selected_tool = state.get("selected_tool") or "rag_search"
 
     logger.info(
-        "[ANSWER] API yanıtı | final_length=%d | llm_generated=%s | llm_empty=%s | "
-        "validation_warning=%s | validation_replaced=%s",
+        "[ANSWER] API yanıtı | final_length=%d | tool=%s | agent_steps=%d",
         len(answer),
-        state.get("llm_answer_generated"),
-        state.get("llm_response_empty"),
-        bool(validation_warning),
-        state.get("validation_replaced_answer", False),
+        selected_tool,
+        len(agent_steps),
     )
 
     return ChatResponse(
         answer=answer,
         citations=to_api_citations(citations),
         steps=steps,
+        agent_steps=agent_steps,
+        selected_tool=selected_tool,
         confidence=confidence,
         validation_warning=validation_warning,
         retrieval_debug=retrieval_debug,
+        tool_call_logs=_tool_calls_from_state(state),
     )
 
 
@@ -135,6 +173,8 @@ def run_agent(question: str) -> ChatResponse:
             answer=FALLBACK_MESSAGE,
             citations=[],
             steps=["Soru alındı.", "Boş soru — güvenli yanıt döndürüldü."],
+            agent_steps=["Soru alındı.", "Boş soru — güvenli yanıt döndürüldü."],
+            selected_tool="rag_search",
             confidence="unknown",
         )
 
@@ -157,5 +197,10 @@ def run_agent(question: str) -> ChatResponse:
                 "Ajan akışı sırasında hata oluştu.",
                 "Güvenli fallback cevabı döndürüldü.",
             ],
+            agent_steps=[
+                "Soru alındı.",
+                "Ajan akışı sırasında hata oluştu.",
+            ],
+            selected_tool="rag_search",
             confidence="unknown",
         )

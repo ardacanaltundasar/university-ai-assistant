@@ -55,16 +55,27 @@ class RetrievalDebugPayload(BaseModel):
     final_contexts: list[RetrievalDebugChunk]
 
 
+class ToolCallLog(BaseModel):
+    tool_name: str
+    input_summary: str | None = None
+    output_summary: str | None = None
+    status: str = "completed"
+    duration_ms: int | None = None
+
+
 class ChatResponse(BaseModel):
     answer: str
     citations: list[Citation]
-    steps: list[str]
+    steps: list[str] = Field(default_factory=list)
+    agent_steps: list[str] = Field(default_factory=list)
+    selected_tool: str | None = None
     confidence: ConfidenceLevel
     session_id: str | None = None
     user_message_id: str | None = None
     assistant_message_id: str | None = None
     validation_warning: str | None = None
     retrieval_debug: RetrievalDebugPayload | None = None
+    tool_call_logs: list[ToolCallLog] | None = None
 
 
 # --- Sources ---

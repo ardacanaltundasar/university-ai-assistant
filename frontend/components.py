@@ -23,11 +23,10 @@ def strip_inline_sources(answer: str) -> str:
     return answer.strip()
 
 
-def render_sidebar(*, on_new_chat, on_load_session) -> None:
+def render_sidebar(*, on_new_chat, on_load_session, on_delete_session) -> None:
     with st.sidebar:
         st.markdown(
-            '<p class="sidebar-brand">Üniversite AI Asistanı</p>'
-            '<p class="sidebar-brand-sub">Öğrenci işleri · kaynaklı yanıtlar</p>',
+            '<p class="sidebar-brand">Üniversite AI Asistanı</p>',
             unsafe_allow_html=True,
         )
 
@@ -42,15 +41,28 @@ def render_sidebar(*, on_new_chat, on_load_session) -> None:
             st.caption("Henüz kayıtlı sohbet yok.")
         else:
             for i, session in enumerate(sessions):
-                sid = session.get("id", "")
-                title = session.get("title", "Sohbet")[:48]
-                is_active = sid == st.session_state.get("active_session_id")
+                sid = str(session.get("id", ""))
+                title = session.get("title", "Sohbet")[:100]
+                is_active = sid == str(st.session_state.get("active_session_id") or "")
                 label = f"{'• ' if is_active else ''}{title}"
-                if st.button(label, key=f"session_{i}_{sid[:8]}", use_container_width=True):
-                    on_load_session(sid)
+                col_open, col_del = st.columns([3.5, 1], gap="small")
+                with col_open:
+                    if st.button(
+                        label,
+                        key=f"session_{i}_{sid[:8]}",
+                        use_container_width=True,
+                    ):
+                        on_load_session(sid)
+                with col_del:
+                    if st.button(
+                        "🗑",
+                        key=f"delete_session_{sid}",
+                        help="Sohbeti sil",
+                    ):
+                        on_delete_session(sid)
 
         st.markdown(
-            '<p class="sidebar-footer">Demo / PoC sürümü</p>',
+            '<p class="sidebar-footer">Ardacan Altundaşar</p>',
             unsafe_allow_html=True,
         )
 
@@ -85,11 +97,19 @@ def render_suggestion_cards(on_select) -> None:
 def render_chat_history() -> None:
     for msg in st.session_state.messages:
         role = msg.get("role", "assistant")
-        with st.chat_message(role, avatar="🎓" if role == "assistant" else None):
+        with st.chat_message(role, avatar="🤖" if role == "assistant" else "✍"):
             if role == "user":
                 st.markdown(msg.get("content", ""))
             else:
                 render_assistant_message(msg)
+
+
+def render_agent_steps(agent_steps: list[str] | None) -> None:
+    if not agent_steps:
+        return
+    with st.expander("Agent adımları", expanded=False):
+        for step in agent_steps:
+            st.markdown(f"✓ {step}")
 
 
 def render_assistant_message(msg: Message) -> None:
@@ -97,6 +117,7 @@ def render_assistant_message(msg: Message) -> None:
     citations = msg.get("citations") or []
     validation_warning = msg.get("validation_warning")
     retrieval_debug = msg.get("retrieval_debug")
+    agent_steps = msg.get("agent_steps")
 
     if validation_warning:
         st.warning(validation_warning)
@@ -104,6 +125,7 @@ def render_assistant_message(msg: Message) -> None:
     display = strip_inline_sources(content) if citations else content
     st.markdown(display)
 
+    render_agent_steps(agent_steps)
     render_sources(citations)
     render_retrieval_debug(retrieval_debug)
 

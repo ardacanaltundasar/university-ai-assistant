@@ -7,7 +7,9 @@ import streamlit as st
 
 from api_client import (
     ApiClientError,
+    DELETE_SESSION_ERROR,
     create_chat_session,
+    delete_chat_session,
     get_session_messages,
     list_chat_sessions,
     post_chat,
@@ -64,6 +66,19 @@ def _handle_new_chat() -> None:
     st.rerun()
 
 
+def _handle_delete_session(session_id: str) -> None:
+    active = str(st.session_state.get("active_session_id") or "")
+    try:
+        delete_chat_session(session_id)
+        if active == session_id:
+            reset_chat()
+        refresh_session_list()
+        st.session_state.flash_message = ("success", "Sohbet silindi.")
+    except ApiClientError:
+        st.session_state.flash_message = ("error", DELETE_SESSION_ERROR)
+    st.rerun()
+
+
 def _handle_load_session(session_id: str) -> None:
     try:
         messages = get_session_messages(session_id)
@@ -86,10 +101,10 @@ def send_question(question: str) -> None:
 
     append_user_message(trimmed)
 
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar="✍"):
         st.markdown(trimmed)
 
-    with st.chat_message("assistant", avatar="🎓"):
+    with st.chat_message("assistant", avatar="🤖"):
         try:
             with st.spinner("Cevap hazırlanıyor..."):
                 response = post_chat(trimmed, session_id=st.session_state.active_session_id)
@@ -100,12 +115,14 @@ def send_question(question: str) -> None:
             citations = response.get("citations", [])
             answer = response.get("answer", "")
 
+            agent_steps = response.get("agent_steps") or response.get("steps") or []
             msg = {
                 "role": "assistant",
                 "content": answer,
                 "citations": citations,
                 "validation_warning": response.get("validation_warning"),
                 "retrieval_debug": response.get("retrieval_debug"),
+                "agent_steps": agent_steps,
                 "message_id": response.get("assistant_message_id"),
             }
             append_assistant_message(
@@ -113,6 +130,7 @@ def send_question(question: str) -> None:
                 citations=citations,
                 validation_warning=response.get("validation_warning"),
                 retrieval_debug=response.get("retrieval_debug"),
+                agent_steps=agent_steps,
                 message_id=response.get("assistant_message_id"),
             )
             render_assistant_message(msg)
@@ -127,7 +145,17 @@ def send_question(question: str) -> None:
 
 refresh_session_list()
 
-render_sidebar(on_new_chat=_handle_new_chat, on_load_session=_handle_load_session)
+if st.session_state.get("flash_message"):
+    kind, text = st.session_state.flash_message
+    st.session_state.flash_message = None
+    icon = "✅" if kind == "success" else "⚠️"
+    st.toast(text, icon=icon)
+
+render_sidebar(
+    on_new_chat=_handle_new_chat,
+    on_load_session=_handle_load_session,
+    on_delete_session=_handle_delete_session,
+)
 render_header()
 render_suggestion_cards(on_select=_queue_question)
 render_chat_history()

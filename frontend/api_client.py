@@ -6,6 +6,7 @@ DEFAULT_BACKEND_URL = "http://127.0.0.1:8000"
 TIMEOUT_SECONDS = 60.0
 
 USER_FACING_ERROR = "Cevap alınırken bir sorun oluştu. Lütfen tekrar deneyin."
+DELETE_SESSION_ERROR = "Sohbet silinirken bir sorun oluştu."
 
 
 class ApiClientError(Exception):
@@ -50,6 +51,24 @@ def create_chat_session(title: str = "Yeni Sohbet") -> dict:
 def list_chat_sessions() -> list[dict]:
     data = _request("GET", "/chat/sessions")
     return data.get("sessions", [])
+
+
+def delete_chat_session(session_id: str) -> dict:
+    url = f"{get_backend_url()}/chat/sessions/{session_id}"
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.delete(url)
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as exc:
+        raise ApiClientError(
+            DELETE_SESSION_ERROR,
+            technical=f"HTTP {exc.response.status_code}",
+        ) from exc
+    except httpx.ConnectError as exc:
+        raise ApiClientError(DELETE_SESSION_ERROR, technical=str(exc)) from exc
+    except httpx.TimeoutException as exc:
+        raise ApiClientError(DELETE_SESSION_ERROR, technical=str(exc)) from exc
 
 
 def get_session_messages(session_id: str) -> list[dict]:

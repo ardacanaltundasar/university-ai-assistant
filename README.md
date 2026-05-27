@@ -1,110 +1,185 @@
-# University AI Agent
+# University AI Assistant
 
-Üniversite öğrenci işleri için **Agentic RAG** tabanlı, kaynak gösteren, lokal çalışan **PoC demo** asistanı.
+Üniversite kaynakları, akademik belgeler ve ders içerikleri üzerinde çalışan RAG tabanlı, tool destekli yapay zekâ asistan platformu.
 
-Detaylı mimari ve kurallar: [`context.md`](context.md).
+---
 
-## Proje özeti
+## Proje Amacı
 
-Öğrenciler yönetmelik, sınav, kayıt, belge ve kampüs süreçleri hakkında soru sorar. Sistem:
+Bu proje, üniversite ortamında dağınık duran bilgiyi — yönetmelikler, duyurular, akademik takvimler, ders notları ve benzeri kaynakları — doğal dilde sorgulanabilir hale getirmeyi hedefler. Temel hedefler:
 
-- Hybrid search (ChromaDB + BM25) ile kaynak arar
-- LangGraph ajan akışı ile cevap üretir
-- CRAG ile kaynakları doğrular
-- Citation ile kaynak gösterir
-- **Kaynak yoksa kesin cevap vermez**
+- Üniversiteye ait yönetmelik, duyuru, akademik takvim, ders içeriği ve benzeri kaynakları daha erişilebilir kılmak
+- Kullanıcının doğal dilde sorduğu sorulara **kaynaklı** ve **bağlama dayalı** cevap üretmek
+- Yalnızca LLM çıktısına güvenmek yerine **RAG**, **hybrid search** ve **tool routing** ile kontrollü yanıt üretmek
+- Lokal ortamda çalışan, tekrarlanabilir bir **PoC / demo mimarisi** sunmak
 
-## Mimari
+Kaynak bulunamadığında sistem kesin cevap vermek yerine güvenli bir fallback mesajı döner (*“Kaynak yoksa cevap yok”* prensibi).
+
+---
+
+## Temel Özellikler
+
+- Kaynaklı soru-cevap (citation ile)
+- PDF ve Markdown ingestion
+- ChromaDB semantic / vector search
+- BM25 keyword search (`rank-bm25`)
+- Hybrid retrieval (vektör + anahtar kelime birleşimi)
+- LangGraph tabanlı agent workflow
+- Intent routing (soru türüne göre dal seçimi)
+- Open Library ile akademik kaynak / kitap önerisi
+- PostgreSQL ile kalıcı sohbet geçmişi, agent run ve tool call logları
+- Redis altyapısı (cache / servis katmanı)
+- Docker Compose ile tek komutla çalıştırma
+- Modern Streamlit sohbet arayüzü (oturum geçmişi, silme, agent steps)
+- API üzerinden ingestion ve chat uç noktaları
+
+---
+
+## Sistem Mimarisi
 
 ```text
-Streamlit (frontend)  →  FastAPI (backend)  →  LangGraph Agent
-                                              ↓
-                                    Hybrid Search (Chroma + BM25)
-                                              ↓
-                                    PDF / Markdown / FAQ veri katmanı
+Kullanıcı
+  → Streamlit Frontend
+  → FastAPI Backend
+  → LangGraph Agent
+  → Intent Router
+  → RAG Search / Resource Recommender Tool
+  → LLM Answer Generation
+  → PostgreSQL (Logs & Chat History)
+  → Response + Sources + Agent Steps
 ```
 
-**Ajan akışı:** analyze → route → retrieve → grade → (rewrite) → generate → validate → (fallback)
+**Veri katmanı (retrieval):** ham belgeler → chunking → ChromaDB (embedding) + BM25 (keyword)  
+**Uygulama katmanı (kalıcılık):** PostgreSQL — oturumlar, mesajlar, geri bildirim, agent ve tool logları
 
-## Teknolojiler
+---
 
-| Katman | Teknoloji |
-|--------|-----------|
-| API | FastAPI, Uvicorn |
-| UI | Streamlit |
-| Agent | LangGraph |
-| Vektör DB | ChromaDB |
-| Keyword | rank-bm25 |
-| LLM / Embedding | OpenAI GPT-4o mini, text-embedding-3-small |
-| PDF | pypdf |
-| Opsiyonel | Redis, Docker Compose |
+## Teknoloji Stack’i
 
-## Kurulum (yerel)
+| Teknoloji | Rol |
+|-----------|-----|
+| **FastAPI** | REST API, chat, ingestion, health ve OpenAPI dokümantasyonu |
+| **Streamlit** | Sohbet arayüzü, oturum yönetimi, kaynak ve agent adımlarının gösterimi |
+| **LangGraph** | Agent workflow: analiz, intent, retrieval, grading, üretim, doğrulama |
+| **ChromaDB** | Semantic / vector search; `text-embedding-3-small` embedding’leri |
+| **BM25** (`rank-bm25`) | Keyword tabanlı arama; hybrid retrieval’ın ikinci bileşeni |
+| **PostgreSQL** | Chat session, mesaj, feedback, agent run, tool call logları |
+| **Redis** | Cache ve servis altyapısı (opsiyonel entegrasyon) |
+| **OpenAI** | `gpt-4o-mini` (cevap üretimi), `text-embedding-3-small` (embedding) |
+| **Open Library API** | Ders / konu bazlı kitap ve kaynak önerisi (API key gerekmez) |
+| **Docker Compose** | Backend, frontend, PostgreSQL, Redis tek komutla ayağa kalkar |
 
-### 1. Bağımlılıklar
+Ek: **pypdf** (PDF parsing), **SQLAlchemy** + **Alembic** (veritabanı), **httpx** (frontend → backend).
+
+---
+
+## Agent Tools
+
+### RAG Search Tool
+
+PDF ve Markdown kaynaklardan hybrid arama yapar; bulunan pasajlara dayanarak kaynaklı cevap üretir. Yönetmelik maddeleri, akademik takvim, duyuru metinleri ve benzeri indexlenmiş içerikler için kullanılır.
+
+- `selected_tool`: `rag_search`
+- Akış: analyze → intent → retrieve → grade → (rewrite) → generate → validate
+
+### Resource Recommender Tool
+
+Ders içeriği veya konu ifadesine göre [Open Library](https://openlibrary.org) üzerinden kitap / kaynak önerir; isteğe bağlı olarak RAG bağlamı ile zenginleştirilir.
+
+- `selected_tool`: `resource_recommender`
+- Akış: analyze → intent → (RAG context) → Open Library → LLM öneri
+
+API yanıtında `agent_steps` ve `selected_tool` alanları döner; Streamlit arayüzünde **Agent adımları** expander’ında gösterilir.
+
+### Gelecek tool’lar (planlanan)
+
+- Web crawler (public duyuru / yönetmelik toplama)
+- Dilekçe / form asistanı
+- Reranker
+- RAG evaluation
+- Admin panel
+
+---
+
+## Veri Kaynakları
+
+Public repoda **demo Markdown belgeleri** bulunur:
+
+```text
+data/raw/samples/
+  sample_regulation.md
+  sample_academic_calendar.md
+  sample_announcement.md
+```
+
+Bu metinler tamamen kurgu/demo amaçlıdır (kayıt dondurma, mazeret sınavı, mezuniyet, ders kaydı vb. konuları kapsar).
+
+Gerçek belgeler yalnızca **lokal ortamda** eklenir:
+
+```text
+data/raw/pdf/     # PDF dosyaları (.gitignore)
+data/raw/web/     # Markdown, metin, JSON (.gitignore)
+data/raw/faq/     # İsteğe bağlı Gold FAQ
+```
+
+**Üretilen indeksler** (GitHub’a dahil edilmez):
+
+```text
+data/chroma/      # ChromaDB vektör indeksi
+data/bm25/        # BM25 pickle indeksi
+data/processed/   # chunks.jsonl
+```
+
+Desteklenen ingestion formatları: `.pdf`, `.md`, `.txt`, `.json`
+
+---
+
+## Kurulum
+
+### Gereksinimler
+
+- Docker ve Docker Compose **veya**
+- Python 3.11+, `pip`, çalışan bir OpenAI API anahtarı
+
+### Docker (önerilen)
 
 ```bash
-cd /path/to/uni-agent-project
+git clone <repo-url>
+cd uni-agent-project
+cp .env.example .env
+# .env içinde OPENAI_API_KEY ve gerekirse POSTGRES_* değerlerini doldurun
+
+docker compose up --build
+```
+
+| Servis | Adres |
+|--------|--------|
+| Streamlit UI | http://localhost:8501 |
+| FastAPI | http://localhost:8000 |
+| API Docs | http://localhost:8000/docs |
+| Health | http://localhost:8000/health |
+
+### Yerel geliştirme (opsiyonel)
+
+```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-```
-
-### 2. Ortam dosyası
-
-```bash
 cp .env.example .env
-# .env içine OPENAI_API_KEY değerinizi yazın
-```
 
-### 3. Demo Data
-
-Public repoda **gerçek üniversite PDF’leri veya özel veriler bulunmaz**. Bunun yerine demo Markdown belgeleri vardır:
-
-```text
-data/
-  raw/
-    pdf/          # .gitkeep — gerçek PDF’ler yalnızca lokal eklenir (gitignore)
-    web/          # .md, .txt, .json duyurular (opsiyonel, lokal)
-    samples/      # Demo belgeler (repoda)
-      sample_regulation.md
-      sample_academic_calendar.md
-      sample_announcement.md
-  chroma/         # vektör indeksi (gitignore)
-  bm25/           # BM25 indeksi (gitignore)
-  processed/      # chunks.jsonl (gitignore)
-```
-
-**Demo belgeler** kayıt dondurma, mazeret sınavı, mezuniyet şartları, ders kayıt süreci ve akademik takvim konularını içerir (tamamen kurgu metin).
-
-Gerçek PDF veya web içeriği eklemek için dosyaları `data/raw/pdf/` veya `data/raw/web/` altına koyun; ardından ingestion çalıştırın.
-
-İsteğe bağlı Gold FAQ: `data/raw/faq/gold_faq.json`
-
-### 4. Ingestion (PDF / Markdown → chunks → Chroma + BM25)
-
-Desteklenen formatlar: `.pdf`, `.md`, `.txt`, `.json`  
-Okunan klasörler: `data/raw/pdf/`, `data/raw/web/`, `data/raw/samples/`
-
-**Yerel (venv):**
-
-```bash
-source venv/bin/activate
 export PYTHONPATH=.
-python scripts/ingest_data.py
+uvicorn backend.app.main:app --reload --port 8000
+
+# Ayrı terminal
+export BACKEND_URL=http://127.0.0.1:8000
+streamlit run frontend/streamlit_app.py
 ```
 
-Yalnızca demo samples (API anahtarı ile tam indeks):
+---
 
-```bash
-python scripts/ingest_data.py --samples-only
-```
+## Ingestion
 
-Sadece mevcut `chunks.jsonl` ile indeks yenileme:
-
-```bash
-python scripts/ingest_data.py --skip-sources
-```
+Belge kaynaklarını chunk’layıp ChromaDB ve BM25 indekslerini oluşturur.
 
 **Docker:**
 
@@ -112,37 +187,98 @@ python scripts/ingest_data.py --skip-sources
 docker compose exec backend python scripts/ingest_data.py
 ```
 
-Chroma metadata alanları: `source`, `source_type`, `title`, `content_type`, `page`, `section_title`, `indexed_at`
-
-### 5. Backend
+**Yerel:**
 
 ```bash
+source venv/bin/activate
 export PYTHONPATH=.
-uvicorn backend.app.main:app --reload --port 8000
+python scripts/ingest_data.py
 ```
 
-- API: http://127.0.0.1:8000  
-- Docs: http://127.0.0.1:8000/docs  
-- Health: http://127.0.0.1:8000/health  
-
-### 6. Frontend (yeni terminal)
+Yalnızca demo `samples` klasörü (hızlı deneme):
 
 ```bash
-export BACKEND_URL=http://127.0.0.1:8000
-streamlit run frontend/streamlit_app.py
+python scripts/ingest_data.py --samples-only
 ```
 
-- UI: http://localhost:8501  
-
-## Docker ile çalıştırma
+Mevcut `chunks.jsonl` ile indeks yenileme:
 
 ```bash
-cp .env.example .env
-# OPENAI_API_KEY doldurun
-docker compose up --build
+python scripts/ingest_data.py --skip-sources
 ```
 
-## Test scriptleri
+Alternatif: `POST /ingest` API uç noktası (FastAPI docs).
+
+Chroma metadata örnekleri: `source`, `source_type`, `title`, `content_type`, `page`, `section_title`, `indexed_at`
+
+---
+
+## Kullanım Örnekleri
+
+**RAG / yönetmelik ve süreç soruları**
+
+- Kayıt dondurma şartları nelerdir?
+- Mazeret sınavına kimler başvurabilir?
+- Mezuniyet için gerekli şartlar nelerdir?
+- Ders kaydı süreci nasıl işler?
+
+**Kaynak / kitap önerisi**
+
+- Veri yapıları için kaynak öner.
+- Algoritma dersi için kitap öner.
+
+Örnek yanıt alanları: `answer`, `citations`, `agent_steps`, `selected_tool`, `session_id`
+
+---
+
+## PostgreSQL’in Rolü
+
+PostgreSQL, **kalıcı uygulama verisini** tutar:
+
+- `chat_sessions` — sohbet oturumları
+- `chat_messages` — kullanıcı ve asistan mesajları
+- `feedback` — kullanıcı geri bildirimi
+- `agent_runs` — agent çalışma kayıtları
+- `tool_calls` — tool çağrı logları
+
+PostgreSQL **vektör arama için kullanılmaz**. Arama katmanı ayrıdır:
+
+| Bileşen | Görev |
+|---------|--------|
+| **ChromaDB** | Semantic / vector search |
+| **BM25** | Keyword search |
+| **Hybrid retrieval** | İki kanalın birleştirilmesi |
+
+Chroma ve BM25 indeksleri dosya tabanlıdır (`data/chroma`, `data/bm25`).
+
+---
+
+## Projenin Sınırları
+
+- Bu proje **lokal PoC / demo** olarak geliştirilmiştir; production hardening kapsamı dışındadır.
+- Canlı üniversite API entegrasyonu (OBS, e-Devlet vb.) **içermez**.
+- Kişisel öğrenci verisi (not, borç, gerçek transkript) **işlemez**.
+- Kimlik doğrulama veya kurumsal SSO **yoktur**.
+- Cevaplar **yalnızca indexlenmiş kaynaklarla** sınırlıdır; kaynak yoksa kesin iddia üretilmez.
+- Resmi işlem yapmaz; bilgilendirme ve asistanlık amacı taşır.
+- Hava durumu, dilekçe üretimi gibi henüz desteklenmeyen intent’ler için dürüst bilgi mesajı döner.
+
+---
+
+## Yol Haritası
+
+- Web crawler ile public duyuru / yönetmelik toplama
+- Dilekçe / form asistanı
+- Reranker entegrasyonu
+- RAG evaluation ve kalite metrikleri
+- Admin panel (belge ve indeks yönetimi)
+- Semantic cache
+- Kimlik doğrulama (auth)
+- Çoklu üniversite / çoklu koleksiyon desteği
+
+---
+
+## Test Scriptleri
 
 ```bash
 export PYTHONPATH=.
@@ -150,78 +286,27 @@ export PYTHONPATH=.
 python scripts/test_vector_search.py "tek ders sınavı"
 python scripts/test_bm25_search.py "tek ders sınavı"
 python scripts/test_hybrid_search.py
-
-# Demo stabilizasyon testi (12 soru)
+python scripts/test_intent_routing.py
 python scripts/demo_questions.py
 ```
 
-## Demo soruları
+---
 
-Jüri demosu için örnek sorular (Streamlit sidebar + `scripts/demo_questions.py`):
-
-1. Kayıt dondurma şartları nelerdir?
-2. Tek ders sınavına kimler girebilir?
-3. Yaz okulunda en fazla kaç kredi alabilirim?
-4. ÇAP yapmak için not ortalamam kaç olmalı?
-5. Transkriptimi nereden alabilirim?
-6. OBS şifremi unuttum, ne yapmalıyım?
-7. Kampüs kartımı kaybettim, ne yapmalıyım?
-8. Mazeret sınavı için sağlık raporu yeterli mi?
-9. Danışman onayı olmadan ders seçimi tamamlanır mı?
-10. Harç ödemesini nasıl yapabilirim?
-
-**Kapsam dışı** (güvenli fallback beklenir):
-
-11. Bugün hava nasıl?
-12. Bana gerçek transkriptimi çıkarır mısın?
-
-## Sistem sınırları
-
-Bu PoC **yapmaz**:
-
-- Canlı OBS / e-Devlet entegrasyonu
-- Kişisel not, borç, transkript sorgulama
-- Resmi işlem veya belge üretme
-- Canlı hava durumu gibi kaynak dışı sorular
-
-## Temel prensip
+## Klasör Yapısı
 
 ```text
-Kaynak yoksa cevap yok.
-```
-
-Yanlış bilgi vermektense güvenli fallback mesajı döner:
-
-> Bu konuda elimdeki doğrulanmış kaynaklarda yeterli bilgi bulamadım…
-
-## Hızlı demo kontrol listesi
-
-```bash
-# 1) Ortam
-cp .env.example .env
-
-# 2) Paketler
-pip install -r requirements.txt
-
-# 3) İndeks (PDF'ler yüklüyse)
-export PYTHONPATH=.
-python scripts/ingest_data.py
-
-# 4) Backend
-uvicorn backend.app.main:app --reload --port 8000
-
-# 5) Frontend (ayrı terminal)
-streamlit run frontend/streamlit_app.py
-
-# 6) Otomatik test
-python scripts/demo_questions.py
-```
-
-## Klasör yapısı
-
-```text
-backend/app/     FastAPI, agent, RAG, services
+backend/app/     FastAPI, agent, RAG, tools, db, services
 frontend/        Streamlit UI
 data/            Ham veri, işlenmiş chunk, indeksler
-scripts/         Ingest ve test betikleri
+scripts/         Ingestion ve test betikleri
+alembic/         Veritabanı migration
+docker-compose.yml
 ```
+
+Detaylı mimari notlar: [`context.md`](context.md) · Sürüm notları: [`CHANGELOG.md`](CHANGELOG.md)
+
+---
+
+## Lisans
+
+Repoda henüz bir `LICENSE` dosyası tanımlı değildir. Projeyi dağıtırken uygun bir açık kaynak lisansı (ör. MIT) eklemeniz önerilir.

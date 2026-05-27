@@ -15,15 +15,16 @@ from backend.app.db import crud
 
 logger = logging.getLogger(__name__)
 
-SELECTED_TOOL = "langgraph_hybrid_rag"
-
 _STEP_TOOL_MAP: list[tuple[str, str]] = [
+    ("Niyet algılandı", "intent_router"),
+    ("RAG araması", "hybrid_search"),
     ("Kaynaklarda arama", "hybrid_search"),
-    ("Bulunan kaynaklar", "grade_documents"),
+    ("Open Library", "open_library"),
+    ("Ana konular", "topic_extractor"),
+    ("Kitap önerileri", "resource_recommender"),
     ("LLM ile cevap", "generate_answer"),
     ("doğruland", "validate_answer"),
     ("Arama sorgusu", "rewrite_query"),
-    ("Soru analiz", "analyze_question"),
     ("fallback", "fallback_response"),
 ]
 
@@ -43,6 +44,37 @@ def _parse_session_id(raw: str | None) -> uuid.UUID | None:
         return uuid.UUID(str(raw))
     except ValueError:
         return None
+
+
+def _persist_tool_calls(
+    db: Session,
+    agent_run_id: uuid.UUID,
+    response: ChatResponse,
+    question: str,
+) -> None:
+    if response.tool_call_logs:
+        for tc in response.tool_call_logs:
+            crud.create_tool_call(
+                db,
+                agent_run_id=agent_run_id,
+                tool_name=tc.tool_name,
+                input_summary=tc.input_summary,
+                output_summary=tc.output_summary,
+                status=tc.status,
+                duration_ms=tc.duration_ms,
+            )
+        return
+
+    for step in response.agent_steps or response.steps:
+        tool_name = _infer_tool_name(step)
+        crud.create_tool_call(
+            db,
+            agent_run_id=agent_run_id,
+            tool_name=tool_name,
+            input_summary=question[:500] if tool_name == "hybrid_search" else None,
+            output_summary=step[:500],
+            status="completed",
+        )
 
 
 def run_chat_with_persistence(db: Session | None, request: ChatRequest) -> ChatResponse:
@@ -67,6 +99,11 @@ def run_chat_with_persistence(db: Session | None, request: ChatRequest) -> ChatR
                 "Beklenmeyen bir hata oluştu.",
                 "Güvenli fallback cevabı döndürüldü.",
             ],
+            agent_steps=[
+                "Soru alındı.",
+                "Beklenmeyen bir hata oluştu.",
+            ],
+            selected_tool="rag_search",
             confidence="unknown",
         )
 
@@ -77,6 +114,8 @@ def run_chat_with_persistence(db: Session | None, request: ChatRequest) -> ChatR
             answer=FALLBACK_MESSAGE,
             citations=[],
             steps=["Soru alındı.", "Cevap üretilemedi."],
+            agent_steps=["Soru alındı.", "Cevap üretilemedi."],
+            selected_tool="rag_search",
             confidence="unknown",
         )
 
@@ -102,25 +141,17 @@ def run_chat_with_persistence(db: Session | None, request: ChatRequest) -> ChatR
         )
         crud.touch_session(db, session)
 
+        selected_tool = response.selected_tool or "rag_search"
         agent_run = crud.create_agent_run(
             db,
             session_id=session.id,
             question=question,
-            selected_tool=SELECTED_TOOL,
+            selected_tool=selected_tool,
             status=agent_status,
             duration_ms=duration_ms,
         )
 
-        for step in response.steps:
-            tool_name = _infer_tool_name(step)
-            crud.create_tool_call(
-                db,
-                agent_run_id=agent_run.id,
-                tool_name=tool_name,
-                input_summary=question[:500] if tool_name == "hybrid_search" else None,
-                output_summary=step[:500],
-                status="completed",
-            )
+        _persist_tool_calls(db, agent_run.id, response, question)
 
         return response.model_copy(
             update={

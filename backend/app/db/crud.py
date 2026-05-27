@@ -21,6 +21,34 @@ def get_chat_session(db: Session, session_id: uuid.UUID) -> models.ChatSession |
     return db.query(models.ChatSession).filter(models.ChatSession.id == session_id).first()
 
 
+def delete_chat_session(db: Session, session_id: uuid.UUID) -> bool:
+    """
+    Oturumu ve bağlı kayıtları siler (mesajlar, agent run, tool call).
+    AgentRun.session_id DB'de SET NULL olduğu için run'lar açıkça silinir.
+    """
+    session = get_chat_session(db, session_id)
+    if not session:
+        return False
+
+    run_ids = [
+        row[0]
+        for row in db.query(models.AgentRun.id)
+        .filter(models.AgentRun.session_id == session_id)
+        .all()
+    ]
+    if run_ids:
+        db.query(models.ToolCall).filter(models.ToolCall.agent_run_id.in_(run_ids)).delete(
+            synchronize_session=False
+        )
+        db.query(models.AgentRun).filter(models.AgentRun.session_id == session_id).delete(
+            synchronize_session=False
+        )
+
+    db.delete(session)
+    db.commit()
+    return True
+
+
 def list_chat_sessions(db: Session, *, limit: int = 50) -> list[models.ChatSession]:
     return (
         db.query(models.ChatSession)

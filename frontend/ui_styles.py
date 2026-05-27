@@ -49,8 +49,8 @@ section[data-testid="stSidebar"] .block-container {
     max-width: 36rem;
 }
 
-/* Öneri kartları */
-div[data-testid="column"] .stButton > button {
+/* Öneri kartları (yalnızca ana alan) */
+section.main div[data-testid="column"] .stButton > button {
     border-radius: 12px;
     border: 1px solid rgba(148, 163, 184, 0.22);
     background: rgba(148, 163, 184, 0.06);
@@ -62,9 +62,54 @@ div[data-testid="column"] .stButton > button {
     font-weight: 500;
     transition: border-color 0.15s, background 0.15s;
 }
-div[data-testid="column"] .stButton > button:hover {
+section.main div[data-testid="column"] .stButton > button:hover {
     border-color: rgba(99, 102, 241, 0.45);
     background: rgba(99, 102, 241, 0.08);
+}
+
+/* Sidebar sohbet satırı — başlık ile silme aynı hizada */
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {
+    align-items: center !important;
+}
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child .stButton > button {
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(148, 163, 184, 0.06);
+    padding: 0.45rem 0.65rem;
+    min-height: unset;
+    text-align: left;
+    white-space: normal;
+    line-height: 1.4;
+    font-weight: 500;
+}
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child .stButton > button:hover {
+    border-color: rgba(99, 102, 241, 0.45);
+    background: rgba(99, 102, 241, 0.08);
+}
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child [data-testid="stVerticalBlock"] {
+    width: 100%;
+    justify-content: center;
+}
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child .stButton {
+    margin-top: 0 !important;
+    width: 100%;
+}
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child .stButton > button {
+    padding: 0.35rem 0.45rem;
+    min-height: 2.25rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: transparent;
+}
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child .stButton > button:hover {
+    border-color: rgba(239, 68, 68, 0.45);
+    background: rgba(239, 68, 68, 0.1);
 }
 
 /* Yeni sohbet butonu */

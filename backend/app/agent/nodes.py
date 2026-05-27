@@ -2,6 +2,7 @@ import logging
 import re
 
 from backend.app.agent.answer_generation import generate_llm_answer
+from backend.app.agent.intent import INACTIVE_INTENTS, classify_intent
 from backend.app.agent.grading import grade_documents_batch
 from backend.app.agent.scope import is_out_of_scope
 from backend.app.agent.validation import validate_answer_grounding
@@ -77,7 +78,9 @@ def analyze_question(state: AgentState) -> dict:
     category = _guess_category(normalized)
     needs_clarification = len(normalized.split()) < 3
 
-    step = f"Soru analiz edildi — kategori: {category}."
+    intent, intent_reason = classify_intent(normalized)
+
+    step = f"Soru analiz edildi — kategori: {category}, niyet: {intent}."
     if out_of_scope:
         step = f"Soru kapsam dışı tespit edildi: {scope_reason}."
 
@@ -88,6 +91,8 @@ def analyze_question(state: AgentState) -> dict:
         "needs_clarification": needs_clarification,
         "out_of_scope": out_of_scope,
         "out_of_scope_reason": scope_reason,
+        "intent": intent,
+        "intent_reason": intent_reason,
         "steps": [step],
     }
 
@@ -95,16 +100,23 @@ def analyze_question(state: AgentState) -> dict:
 def route_after_analyze(state: AgentState) -> str:
     if state.get("out_of_scope"):
         return "fallback_response"
+    intent = state.get("intent", "rag_question")
+    if intent == "resource_recommendation":
+        return "resource_recommendation"
+    if intent in INACTIVE_INTENTS:
+        return "unsupported_intent"
     return "route_question"
 
 
 def route_question(state: AgentState) -> dict:
     category = state.get("category", "Genel")
     return {
+        "selected_tool": "rag_search",
         "search_gold_faq": True,
         "search_vector_db": True,
         "search_bm25": True,
         "category_filter": category if category != "Genel" else None,
+        "agent_steps": ["Niyet algılandı: rag_question"],
         "steps": [
             f"Arama yönlendirildi — Gold FAQ, vektör ve BM25 (filtre: {category})."
         ],
@@ -124,6 +136,7 @@ def retrieve_documents(state: AgentState) -> dict:
         return {
             "documents": documents,
             "retrieval_debug": debug,
+            "agent_steps": [f"{prefix}RAG araması yapıldı ({len(documents)} parça)"],
             "steps": [
                 f"{prefix}Kaynaklarda arama yapıldı ({len(documents)} parça). "
                 "[Retrieval debug aktif]"
@@ -133,6 +146,7 @@ def retrieve_documents(state: AgentState) -> dict:
     documents = hybrid_search(query, top_k=5)
     return {
         "documents": documents,
+        "agent_steps": [f"{prefix}RAG araması yapıldı ({len(documents)} parça)"],
         "steps": [f"{prefix}Kaynaklarda arama yapıldı ({len(documents)} parça)."],
     }
 
