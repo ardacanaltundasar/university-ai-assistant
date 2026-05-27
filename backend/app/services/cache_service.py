@@ -1,1 +1,1 @@
-"""Redis önbellek — henüz uygulanmadı."""
+"""Redis önbellek — `backend.app.cache.redis_cache` modülüne taşındı."""

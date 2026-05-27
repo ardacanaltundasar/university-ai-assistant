@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     bm25_index_path: str = "./data/bm25/bm25_index.pkl"
 
     redis_url: str = "redis://localhost:6379/0"
+    enable_redis_cache: bool = True
+    redis_cache_ttl_seconds: int = 3600
 
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.0 - Redis Answer Cache
+
+- Added Redis answer cache
+- Added cache hit/miss agent steps
+- Added Redis cache configuration
+- Repeated questions can be served from Redis without rerunning agent workflow
+
 ## [0.2.0] — Agent Tool Routing + Open Library Resource Recommender
 
 ### Added

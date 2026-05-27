@@ -28,7 +28,7 @@ Kaynak bulunamadığında sistem kesin cevap vermek yerine güvenli bir fallback
 - Intent routing (soru türüne göre dal seçimi)
 - Open Library ile akademik kaynak / kitap önerisi
 - PostgreSQL ile kalıcı sohbet geçmişi, agent run ve tool call logları
-- Redis altyapısı (cache / servis katmanı)
+- Redis answer cache (tekrarlayan sorularda LLM/retrieval maliyetini azaltır)
 - Docker Compose ile tek komutla çalıştırma
 - Modern Streamlit sohbet arayüzü (oturum geçmişi, silme, agent steps)
 - API üzerinden ingestion ve chat uç noktaları
@@ -64,7 +64,7 @@ Kullanıcı
 | **ChromaDB** | Semantic / vector search; `text-embedding-3-small` embedding’leri |
 | **BM25** (`rank-bm25`) | Keyword tabanlı arama; hybrid retrieval’ın ikinci bileşeni |
 | **PostgreSQL** | Chat session, mesaj, feedback, agent run, tool call logları |
-| **Redis** | Cache ve servis altyapısı (opsiyonel entegrasyon) |
+| **Redis** | Answer cache (`answer_cache:*`) ve `/health` status kontrolü |
 | **OpenAI** | `gpt-4o-mini` (cevap üretimi), `text-embedding-3-small` (embedding) |
 | **Open Library API** | Ders / konu bazlı kitap ve kaynak önerisi (API key gerekmez) |
 | **Docker Compose** | Backend, frontend, PostgreSQL, Redis tek komutla ayağa kalkar |
@@ -253,6 +253,31 @@ Chroma ve BM25 indeksleri dosya tabanlıdır (`data/chroma`, `data/bm25`).
 
 ---
 
+## Redis’in Rolü
+
+Redis iki amaçla kullanılır:
+
+- **Answer cache** — Aynı normalize edilmiş soru tekrar sorulduğunda cevap `answer_cache:{intent}:{hash}` anahtarıyla Redis’ten döner; agent, RAG, LLM ve tool akışı yeniden çalıştırılmaz. Yanıt süresi ve API maliyeti düşer.
+- **Health / status** — `GET /health` yanıtında `redis: ready | unavailable` alanı.
+
+Yapılandırma (`.env`):
+
+```bash
+ENABLE_REDIS_CACHE=true
+REDIS_CACHE_TTL_SECONDS=3600
+REDIS_URL=redis://localhost:6379/0
+```
+
+Redis kullanılamazsa sistem cache’siz devam eder; chat akışı etkilenmez.
+
+Cache doğrulama:
+
+```bash
+docker compose exec redis redis-cli keys '*answer_cache*'
+```
+
+---
+
 ## Projenin Sınırları
 
 - Bu proje **lokal PoC / demo** olarak geliştirilmiştir; production hardening kapsamı dışındadır.
@@ -272,7 +297,6 @@ Chroma ve BM25 indeksleri dosya tabanlıdır (`data/chroma`, `data/bm25`).
 - Reranker entegrasyonu
 - RAG evaluation ve kalite metrikleri
 - Admin panel (belge ve indeks yönetimi)
-- Semantic cache
 - Kimlik doğrulama (auth)
 - Çoklu üniversite / çoklu koleksiyon desteği
 
