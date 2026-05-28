@@ -120,7 +120,7 @@ def set_cached_answer(
 
 def is_answer_cacheable(response: ChatResponse, agent_status: str) -> bool:
     """Yalnızca başarılı, anlamlı cevaplar cache'lenir."""
-    if agent_status != "completed":
+    if agent_status not in ("completed",):
         return False
 
     answer = (response.answer or "").strip()
@@ -128,12 +128,16 @@ def is_answer_cacheable(response: ChatResponse, agent_status: str) -> bool:
         return False
     if answer == FALLBACK_MESSAGE:
         return False
+    if "yeterli bilgi yok" in answer:
+        return False
 
     steps = response.agent_steps or response.steps or []
     for step in steps:
         for marker in _ERROR_STEP_MARKERS:
             if marker in step:
                 return False
+        if "insufficient_sources" in step.lower():
+            return False
 
     return True
 

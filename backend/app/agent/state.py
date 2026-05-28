@@ -22,6 +22,7 @@ class AgentState(TypedDict, total=False):
     intent: str
     intent_reason: str
     selected_tool: str
+    process_run_status: str
 
     # agent tooling
     agent_steps: Annotated[list[str], operator.add]

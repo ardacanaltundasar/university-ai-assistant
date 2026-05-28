@@ -9,6 +9,7 @@
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -22,7 +23,6 @@ from backend.app.core.config import (  # noqa: E402
     resolve_openai_api_key,
 )
 from backend.app.rag.ingest import (  # noqa: E402
-    DEFAULT_RAW_DIRS,
     RAW_PDF_DIR,
     RAW_SAMPLES_DIR,
     RAW_WEB_DIR,
@@ -31,6 +31,33 @@ from backend.app.rag.ingest import (  # noqa: E402
 )
 
 load_env(reload_settings=True)
+
+
+def _include_sample_data_enabled() -> bool:
+    """INCLUDE_SAMPLE_DATA — yoksa true (demo deneyimi)."""
+    raw = os.getenv("INCLUDE_SAMPLE_DATA", "true").strip().lower()
+    return raw in ("1", "true", "yes", "on")
+
+
+def _build_raw_dirs(*, pdf_dir: Path | None, include_samples: bool) -> list[Path]:
+    dirs = [pdf_dir or RAW_PDF_DIR, RAW_WEB_DIR]
+    if include_samples:
+        dirs.append(RAW_SAMPLES_DIR)
+    return dirs
+
+
+def _resolve_raw_dirs(args: argparse.Namespace) -> list[Path]:
+    if args.samples_only:
+        print("Sample data ingestion enabled (--samples-only)")
+        return [RAW_SAMPLES_DIR]
+
+    include_samples = _include_sample_data_enabled()
+    if include_samples:
+        print("Sample data ingestion enabled")
+    else:
+        print("Sample data ingestion disabled, skipping data/raw/samples")
+
+    return _build_raw_dirs(pdf_dir=args.pdf_dir, include_samples=include_samples)
 
 
 def main() -> None:
@@ -76,9 +103,7 @@ def main() -> None:
         )
         sys.exit(1)
 
-    raw_dirs = [RAW_SAMPLES_DIR] if args.samples_only else None
-    if raw_dirs is None and args.pdf_dir:
-        raw_dirs = [args.pdf_dir, RAW_WEB_DIR, RAW_SAMPLES_DIR]
+    raw_dirs = None if args.skip_sources else _resolve_raw_dirs(args)
 
     try:
         result = run_ingestion(

@@ -13,12 +13,15 @@ logger = logging.getLogger(__name__)
 Intent = Literal[
     "rag_question",
     "resource_recommendation",
+    "process_guidance",
     "petition_generation",
     "weather_question",
     "unknown",
 ]
 
-ACTIVE_INTENTS: frozenset[Intent] = frozenset({"rag_question", "resource_recommendation"})
+ACTIVE_INTENTS: frozenset[Intent] = frozenset(
+    {"rag_question", "resource_recommendation", "process_guidance"}
+)
 INACTIVE_INTENTS: frozenset[Intent] = frozenset(
     {"petition_generation", "weather_question"}
 )
@@ -99,8 +102,53 @@ PETITION_PHRASES: list[str] = [
     "dilekçe yaz",
     "dilekce yaz",
     "dilekçe oluştur",
+    "dilekçe hazırla",
+    "dilekce hazirla",
+    "dilekçesi hazırla",
+    "dilekcesi hazirla",
+    "dilekçe",
+    "dilekce",
     "petition",
     "başvuru metni yaz",
+]
+
+# Süreç rehberi — process_guidance
+PROCESS_GUIDANCE_PHRASES: list[str] = [
+    "nasıl yapılır",
+    "nasil yapilir",
+    "süreç nasıl",
+    "surec nasil",
+    "süreci nasıl",
+    "sureci nasil",
+    "süreci nasil",
+    "adım adım",
+    "adim adim",
+    "hangi belgeler",
+    "başvuru süreci",
+    "basvuru sureci",
+    "ne yapmam gerekiyor",
+    "ne yapmam gerek",
+    "nasıl ilerler",
+    "nasil ilerler",
+    "süreç nedir",
+    "surec nedir",
+    "nasıl işler",
+    "nasil isler",
+    "nasıl işliyor",
+    "nasil isliyor",
+]
+
+# Genel bilgi / şart soruları — rag_question önceliği
+RAG_INFO_PHRASES: list[str] = [
+    "şartları nelerdir",
+    "sartlari nelerdir",
+    "şartlar neler",
+    "sartlar neler",
+    "kimler başvurabilir",
+    "kimler basvurabilir",
+    "kimler girebilir",
+    "nedir",
+    "nelerdir",
 ]
 
 INTENT_CLASSIFIER_SYSTEM = (
@@ -112,7 +160,8 @@ INTENT_CLASSIFIER_PROMPT = """Soru:
 {question}
 
 Sınıflar:
-- rag_question: yönetmelik, kayıt, sınav, mezuniyet, belge, kampüs işlemleri
+- rag_question: yönetmelik, kayıt, sınav, mezuniyet, belge, kampüs işlemleri (şartlar, kimler)
+- process_guidance: adım adım süreç, nasıl yapılır, hangi belgeler, başvuru süreci
 - resource_recommendation: ders için kitap/kaynak önerisi, ne çalışmalıyım, akademik okuma
 - petition_generation: dilekçe veya başvuru metni yazdırma (henüz desteklenmiyor)
 - weather_question: hava durumu (desteklenmiyor)
@@ -130,6 +179,29 @@ def _contains_any(text: str, phrases: list[str]) -> bool:
     return any(p in text for p in phrases)
 
 
+def _is_process_guidance_question(q: str) -> bool:
+    """Süreç rehberi niyeti — şart/kimler sorularından ayrım."""
+    if not _contains_any(q, PROCESS_GUIDANCE_PHRASES):
+        return False
+    if _contains_any(q, RAG_INFO_PHRASES) and not _contains_any(
+        q,
+        (
+            "süreç",
+            "surec",
+            "adım",
+            "adim",
+            "nasıl yapılır",
+            "nasil yapilir",
+            "ne yapmam",
+            "hangi belge",
+            "başvuru süreci",
+            "basvuru sureci",
+        ),
+    ):
+        return False
+    return True
+
+
 def classify_intent_rules(question: str) -> Intent | None:
     """Keyword kuralları ile kesin eşleşme."""
     q = _normalize(question)
@@ -141,17 +213,30 @@ def classify_intent_rules(question: str) -> Intent | None:
 
     resource_hit = _contains_any(q, RESOURCE_PHRASES)
     rag_hit = _contains_any(q, RAG_PHRASES)
+    process_hit = _is_process_guidance_question(q)
+    rag_info_hit = _contains_any(q, RAG_INFO_PHRASES)
 
-    if resource_hit and not rag_hit:
+    if resource_hit and not rag_hit and not process_hit:
         return "resource_recommendation"
-    if rag_hit and not resource_hit:
-        return "rag_question"
     if resource_hit and rag_hit:
-        # "mezuniyet için kaynak öner" → resource; "mezuniyet şartları" → rag
-        if any(p in q for p in ("şart", "sart", "nelerdir", "nasıl", "nasil", "kimler", "başvuru süresi")):
-            if not any(p in q for p in ("kitap", "kaynak öner", "kaynak oner", "çalış", "calis", "okum")):
+        if any(p in q for p in ("şart", "sart", "nelerdir", "kimler", "başvuru süresi")):
+            if not any(
+                p in q
+                for p in ("kitap", "kaynak öner", "kaynak oner", "çalış", "calis", "okum")
+            ):
                 return "rag_question"
         return "resource_recommendation"
+
+    if process_hit and not (rag_info_hit and "süreç" not in q and "surec" not in q):
+        return "process_guidance"
+
+    if rag_hit and not resource_hit:
+        return "rag_question"
+    if rag_info_hit and not process_hit:
+        return "rag_question"
+
+    if process_hit:
+        return "process_guidance"
 
     return None
 
@@ -169,6 +254,7 @@ def classify_intent_llm(question: str) -> Intent | None:
     valid: list[Intent] = [
         "rag_question",
         "resource_recommendation",
+        "process_guidance",
         "petition_generation",
         "weather_question",
         "unknown",

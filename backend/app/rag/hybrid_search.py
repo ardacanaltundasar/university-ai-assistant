@@ -47,6 +47,9 @@ class HybridSearchResult(TypedDict):
     category: str
     priority: str
     retrieval_method: RetrievalMethod
+    title: str
+    url: str
+    source_type: str
 
 
 class _MergedEntry(TypedDict):
@@ -57,6 +60,9 @@ class _MergedEntry(TypedDict):
     file_name: str
     category: str
     priority: str
+    title: str
+    url: str
+    source_type: str
     vector_score: float
     bm25_score: float
     from_vector: bool
@@ -127,6 +133,9 @@ def search_gold_faq(query: str, top_k: int = 3) -> list[HybridSearchResult]:
                 category=item.get("category", "Genel"),
                 priority="gold",
                 retrieval_method="hybrid",
+                title="",
+                url="",
+                source_type="faq",
             )
         )
     return results
@@ -152,6 +161,9 @@ def _apply_normalized(
                 file_name=r.get("file_name", ""),
                 category=r.get("category", "Genel"),
                 priority=r.get("priority", "static"),
+                title=r.get("title", ""),
+                url=r.get("url", ""),
+                source_type=r.get("source_type", ""),
                 vector_score=0.0,
                 bm25_score=0.0,
                 from_vector=False,
@@ -167,6 +179,9 @@ def _apply_normalized(
             entry["file_name"] = r.get("file_name", entry["file_name"])
             entry["category"] = r.get("category", entry["category"])
             entry["priority"] = r.get("priority", entry["priority"])
+            entry["title"] = r.get("title", entry.get("title", ""))
+            entry["url"] = r.get("url", entry.get("url", ""))
+            entry["source_type"] = r.get("source_type", entry.get("source_type", ""))
         elif not entry["from_vector"]:
             entry["text"] = r["text"]
             entry["source"] = r["source"]
@@ -174,6 +189,9 @@ def _apply_normalized(
             entry["file_name"] = r.get("file_name", entry["file_name"])
             entry["category"] = r.get("category", entry["category"])
             entry["priority"] = r.get("priority", entry["priority"])
+            entry["title"] = r.get("title", entry.get("title", ""))
+            entry["url"] = r.get("url", entry.get("url", ""))
+            entry["source_type"] = r.get("source_type", entry.get("source_type", ""))
 
 
 def _gold_into_merged(gold_results: list[HybridSearchResult], merged: dict[str, _MergedEntry]) -> None:
@@ -194,6 +212,9 @@ def _gold_into_merged(gold_results: list[HybridSearchResult], merged: dict[str, 
                 file_name=r["file_name"],
                 category=r["category"],
                 priority="gold",
+                title=r.get("title", ""),
+                url=r.get("url", ""),
+                source_type=r.get("source_type", "faq"),
                 vector_score=n,
                 bm25_score=0.0,
                 from_vector=True,
@@ -275,6 +296,9 @@ def hybrid_search(
                 category=entry["category"],
                 priority=entry["priority"],
                 retrieval_method=method,
+                title=entry.get("title", ""),
+                url=entry.get("url", ""),
+                source_type=entry.get("source_type", ""),
             )
         )
 

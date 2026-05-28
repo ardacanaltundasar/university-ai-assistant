@@ -29,11 +29,13 @@ Kaynak bulunamadığında sistem kesin cevap vermek yerine güvenli bir fallback
 - Hybrid retrieval (vektör + anahtar kelime)
 - LangGraph agent workflow
 - Intent routing (soru türüne göre dal seçimi)
+- University Process Navigator (adım adım süreç rehberi)
 - Open Library resource recommender
 - Redis answer cache
 - PostgreSQL chat history, agent run ve tool call logları
 - Streamlit chat UI (oturum geçmişi, agent steps gösterimi)
 - Docker Compose ile tek komutla çalıştırma
+- `INCLUDE_SAMPLE_DATA` ile demo / gerçek kaynak ingestion ayrımı
 - API üzerinden ingestion ve chat uç noktaları
 
 ---
@@ -48,7 +50,7 @@ Kullanıcı
   → FastAPI Backend
   → LangGraph Agent
   → Intent Router
-  → RAG Search / Resource Recommender
+  → RAG Search / Process Navigator / Resource Recommender
   → ChromaDB + BM25 / Open Library
   → LLM Answer Generation
   → PostgreSQL (Logs & Chat History)
@@ -99,6 +101,18 @@ Indexlenmiş PDF, Markdown ve web JSON kaynaklarında hybrid arama yapar; buluna
 - `selected_tool`: `rag_search`
 - Akış: analyze → intent → retrieve → grade → (rewrite) → generate → validate
 
+### Process Navigator Tool
+
+Kullanıcının üniversite süreçleriyle ilgili sorularını algılar; indexlenmiş kaynaklara göre adım adım süreç rehberi, gerekli belgeler/bilgiler, dikkat edilmesi gerekenler, ilgili birim (kaynakta geçiyorsa) ve sonraki aksiyon üretir. Dilekçe üretmez; kişisel veri toplamaz.
+
+- `selected_tool`: `process_navigator`
+- Intent: `process_guidance`
+- Akış: analyze → intent → hybrid search → süreç planı → Markdown rehber + kaynaklar
+
+Örnek sorular: *Ders seçimi nasıl yapılır?*, *Harç ödeme işlemleri nasıl yapılır?*, *Yatay geçiş için ne yapmam gerekiyor?*
+
+Genel şart soruları (`Kayıt dondurma şartları nelerdir?`) **RAG Search** ile yanıtlanır; süreç soruları Process Navigator ile ayrılır.
+
 ### Resource Recommender Tool
 
 Ders içeriği veya konu ifadesine göre [Open Library](https://openlibrary.org) üzerinden kitap / kaynak önerir; isteğe bağlı olarak RAG bağlamı ile zenginleştirilir.
@@ -110,7 +124,7 @@ API yanıtında `agent_steps` ve `selected_tool` alanları döner; Streamlit ara
 
 ### Planlanan (henüz yok)
 
-- Petition / Application Assistant
+- Petition / Application Assistant (dilekçe/form üretimi — v0.5.0 Process Navigator bunu **içermez**)
 - Reranker
 - RAG evaluation
 - Admin panel
@@ -119,7 +133,9 @@ API yanıtında `agent_steps` ve `selected_tool` alanları döner; Streamlit ara
 
 ## Veri Kaynakları
 
-Public repoda **yalnızca demo Markdown belgeleri** bulunur:
+### Demo sample veriler (GitHub’da kalır)
+
+Public repoda **demo Markdown belgeleri** bulunur; repoyu klonlayan herkes hızlı deneme yapabilir:
 
 ```text
 data/raw/samples/
@@ -128,15 +144,26 @@ data/raw/samples/
   sample_announcement.md
 ```
 
-Bu metinler kurgu/demo amaçlıdır. Gerçek üniversite crawl çıktıları **generated/local data** olarak düşünülmelidir; GitHub’a dahil edilmez:
+Bu dosyalar kurgu/demo amaçlıdır (örnek yönetmelik, akademik takvim, duyuru). **GitHub’da kalırlar**; production veya gerçek okul verisi testlerinde ingestion dışında bırakılabilir (`INCLUDE_SAMPLE_DATA=false`).
+
+| `INCLUDE_SAMPLE_DATA` | Davranış |
+|----------------------|----------|
+| `true` (varsayılan) | `data/raw/samples` indexlenir — hızlı demo / GitHub deneyimi |
+| `false` | Samples atlanır — crawler/PDF ile toplanan gerçek kaynaklar için **önerilir** |
+
+Gerçek okul verisiyle çalışırken `false` kullanılmazsa demo akademik takvim, duyuru veya yönetmelik metinleri crawler/PDF kaynaklarıyla **karışabilir**; agent yanlış kaynaktan cevap verebilir.
+
+### Gerçek üniversite verileri (lokal)
+
+Crawler veya manuel PDF ile **lokal ortamda** toplanır; repoya commit edilmemelidir:
 
 ```text
-data/raw/web/     # Crawler JSON çıktıları (.gitignore)
-data/raw/pdf/     # İndirilen PDF’ler (.gitignore)
+data/raw/web/     # Crawler JSON çıktıları (generated/local, .gitignore)
+data/raw/pdf/     # İndirilen PDF’ler (generated/local, .gitignore)
 data/raw/faq/     # İsteğe bağlı Gold FAQ
 ```
 
-Kullanıcı, kendi `.env` dosyasında `UNIVERSITY_CRAWL_URLS` ve `UNIVERSITY_ALLOWED_DOMAINS` tanımlayarak public kaynakları **lokalde** toplayabilir (örnek değerler `.env.example` içinde).
+`UNIVERSITY_CRAWL_URLS` ve `UNIVERSITY_ALLOWED_DOMAINS` kullanıcının `.env` dosyasında tanımlanır (örnekler `.env.example` içinde).
 
 **Üretilen indeksler** (repoda tutulmaz):
 
@@ -195,15 +222,15 @@ streamlit run frontend/streamlit_app.py
 
 ## Ingestion
 
-Belge kaynaklarını chunk’layıp ChromaDB ve BM25 indekslerini oluşturur (`scripts/ingest_data.py`).
+Belge kaynaklarını chunk’layıp ChromaDB ve BM25 indekslerini oluşturur (`scripts/ingest_data.py`). Terminalde sample modu açıkça loglanır (*Sample data ingestion enabled/disabled*).
 
-**Docker:**
+### Demo mod (GitHub hızlı deneme)
+
+`.env` içinde:
 
 ```bash
-docker compose exec backend python scripts/ingest_data.py
+INCLUDE_SAMPLE_DATA=true
 ```
-
-**Yerel:**
 
 ```bash
 source venv/bin/activate
@@ -211,11 +238,36 @@ export PYTHONPATH=.
 python scripts/ingest_data.py
 ```
 
-Yalnızca demo `samples` klasörü (hızlı deneme):
+Yalnızca demo samples (`INCLUDE_SAMPLE_DATA` ayarından bağımsız):
 
 ```bash
 python scripts/ingest_data.py --samples-only
 ```
+
+### Gerçek okul verisi modu (önerilen)
+
+`.env` içinde:
+
+```bash
+INCLUDE_SAMPLE_DATA=false
+```
+
+Ardından crawler → ingestion:
+
+```bash
+export PYTHONPATH=.
+python scripts/crawl_website.py
+python scripts/ingest_data.py
+```
+
+**Docker:**
+
+```bash
+docker compose exec backend python scripts/crawl_website.py
+docker compose exec backend python scripts/ingest_data.py
+```
+
+### Diğer
 
 Mevcut `chunks.jsonl` ile indeks yenileme:
 
@@ -267,13 +319,18 @@ docker compose exec backend python scripts/ingest_data.py
 
 ## Kullanım Örnekleri
 
-**RAG — demo veya indexlenmiş kaynaklar**
+**RAG — genel bilgi / şartlar**
 
 - Kayıt dondurma şartları nelerdir?
 - Akademik takvim hakkında bilgi ver.
+
+**Process Navigator — süreç rehberi** (crawl + ingest sonrası)
+
 - Ders seçimi nasıl yapılır?
 - Harç ödeme işlemleri nasıl yapılır?
-- Yatay geçiş duyurusu hakkında bilgi ver.
+- Yatay geçiş için ne yapmam gerekiyor?
+- Akademik takvimde ders kayıt süreci nasıl ilerliyor?
+- Kayıt dondurma süreci nasıl ilerler?
 
 *Public web soruları için önce crawler + ingestion; Redis cache eski cevap döndürebilir (aşağıya bakın).*
 
@@ -346,6 +403,7 @@ docker compose exec redis redis-cli FLUSHDB
 - Cevaplar **yalnızca indexlenmiş kaynaklarla** sınırlıdır; kaynak yoksa kesin iddia üretilmez.
 - Resmi işlem yapmaz; bilgilendirme ve asistanlık amacı taşır.
 - Crawler **yalnızca public web** kaynakları içindir; güncel içerik için crawl + ingest periyodik tekrarlanmalıdır.
+- Demo sample veriler gerçek crawler/PDF kaynaklarıyla **aynı anda** indexlenirse cevaplar karışabilir; gerçek kaynak testlerinde `INCLUDE_SAMPLE_DATA=false` önerilir.
 - Petition/Application Assistant ve benzeri intent’ler **henüz desteklenmez**; dürüst bilgi mesajı döner.
 
 ---

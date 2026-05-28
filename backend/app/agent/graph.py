@@ -16,6 +16,7 @@ from backend.app.agent.nodes import (
     validate_answer,
 )
 from backend.app.agent.prompts import FALLBACK_MESSAGE
+from backend.app.agent.process_nodes import run_process_guidance
 from backend.app.agent.resource_nodes import (
     run_resource_recommendation,
     unsupported_intent_response,
@@ -45,6 +46,7 @@ def build_graph():
     graph.add_node("validate_answer", validate_answer)
     graph.add_node("fallback_response", fallback_response)
     graph.add_node("resource_recommendation", run_resource_recommendation)
+    graph.add_node("process_guidance", run_process_guidance)
     graph.add_node("unsupported_intent", unsupported_intent_response)
 
     graph.add_edge(START, "analyze_question")
@@ -54,11 +56,13 @@ def build_graph():
         {
             "route_question": "route_question",
             "resource_recommendation": "resource_recommendation",
+            "process_guidance": "process_guidance",
             "unsupported_intent": "unsupported_intent",
             "fallback_response": "fallback_response",
         },
     )
     graph.add_edge("resource_recommendation", END)
+    graph.add_edge("process_guidance", END)
     graph.add_edge("unsupported_intent", END)
 
     graph.add_edge("route_question", "retrieve_documents")

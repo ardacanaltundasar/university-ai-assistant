@@ -18,7 +18,12 @@ CASES: list[tuple[str, str]] = [
     ("Bu ders içeriğine göre ne çalışmalıyım?", "resource_recommendation"),
     ("Kayıt dondurma şartları nelerdir?", "rag_question"),
     ("Mazeret sınavına kimler başvurabilir?", "rag_question"),
-    ("Ders kayıt süreci nasıl işler?", "rag_question"),
+    ("Ders seçimi nasıl yapılır?", "process_guidance"),
+    ("Harç ödeme işlemleri nasıl yapılır?", "process_guidance"),
+    ("Yatay geçiş için ne yapmam gerekiyor?", "process_guidance"),
+    ("Kayıt dondurma süreci nasıl ilerler?", "process_guidance"),
+    ("Ders kayıt süreci nasıl işler?", "process_guidance"),
+    ("Kayıt dondurma dilekçesi hazırla", "petition_generation"),
 ]
 
 

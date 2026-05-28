@@ -103,6 +103,8 @@ def route_after_analyze(state: AgentState) -> str:
     intent = state.get("intent", "rag_question")
     if intent == "resource_recommendation":
         return "resource_recommendation"
+    if intent == "process_guidance":
+        return "process_guidance"
     if intent in INACTIVE_INTENTS:
         return "unsupported_intent"
     return "route_question"

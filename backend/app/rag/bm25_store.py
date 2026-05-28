@@ -28,6 +28,9 @@ class BM25SearchResult(TypedDict):
     file_name: str
     category: str
     priority: str
+    title: str
+    url: str
+    source_type: str
 
 
 @dataclass
@@ -107,6 +110,9 @@ def _chunk_to_result(chunk: ChunkRecord, score: float) -> BM25SearchResult:
         file_name=chunk["file_name"],
         category=chunk["category"],
         priority=chunk["priority"],
+        title=chunk.get("title", ""),
+        url=chunk.get("url", ""),
+        source_type=chunk.get("source_type", ""),
     )
 
 

@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 
 UNSUPPORTED_INTENT_MESSAGE = (
     "Bu özellik henüz desteklenmiyor. "
-    "Şu an yalnızca öğrenci işleri yönetmelik soruları ve ders kaynak önerisi sunulmaktadır."
+    "Şu an yönetmelik/duyuru soruları (RAG), üniversite süreç rehberi ve ders kaynak önerisi "
+    "sunulmaktadır."
 )
 
 

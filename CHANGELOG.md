@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.0 - University Process Navigator
+
+- Added `INCLUDE_SAMPLE_DATA` configuration to control whether demo sample documents are included during ingestion
+- Documented recommended real-data workflow with `INCLUDE_SAMPLE_DATA=false` after crawl/PDF collection
+- Clarified that crawled web (`data/raw/web`) and PDF (`data/raw/pdf`) outputs are generated local data and should not be committed
+- Added `process_guidance` intent
+- Added Process Navigator tool (`backend/app/tools/process_navigator.py`)
+- Added structured process guides for university workflows (step-by-step, checklist, next action)
+- Added process-specific agent steps and `selected_tool`: `process_navigator`
+- Added PostgreSQL tool logging for process navigation (`success` / `insufficient_sources`)
+- Redis answer cache supports `process_guidance` intent keys separately
+
 ## v0.4.0 - Web Crawler / Public Source Collector
 
 - Added public web crawler script (`scripts/crawl_website.py`)
@@ -12,6 +24,10 @@
 - Added allowed-domain restriction with subdomain support (`medeniyet.edu.tr`, `*.medeniyet.edu.tr`)
 - Added web JSON ingestion support
 - Documented crawler + ingestion workflow (README)
+
+### Improved (ingestion)
+
+- Added `INCLUDE_SAMPLE_DATA` in `.env.example` (default `true` for demo; `false` recommended for real university sources)
 
 ## v0.3.0 - Redis Answer Cache
 

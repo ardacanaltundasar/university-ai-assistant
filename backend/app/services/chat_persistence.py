@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 _STEP_TOOL_MAP: list[tuple[str, str]] = [
     ("Niyet algılandı", "intent_router"),
+    ("Süreç türü", "process_navigator"),
+    ("hybrid search", "process_navigator"),
     ("RAG araması", "hybrid_search"),
     ("Kaynaklarda arama", "hybrid_search"),
     ("Open Library", "open_library"),
@@ -62,6 +64,18 @@ def _parse_session_id(raw: str | None) -> uuid.UUID | None:
 def _detect_intent_for_cache(question: str) -> str:
     """Cache key için kural tabanlı intent (LLM çağrısı yok)."""
     return classify_intent_rules(question) or "rag_question"
+
+
+def _agent_status_from_response(response: ChatResponse) -> str:
+    """PostgreSQL AgentRun status — process yetersiz kaynak ayrımı."""
+    if response.selected_tool == "process_navigator":
+        steps_text = " ".join(response.agent_steps or [])
+        if (
+            "insufficient_sources" in steps_text.lower()
+            or "yeterli bilgi yok" in (response.answer or "")
+        ):
+            return "insufficient_sources"
+    return "completed"
 
 
 def _append_agent_step(response: ChatResponse, step: str) -> ChatResponse:
@@ -158,6 +172,7 @@ def run_chat_with_persistence(db: Session | None, request: ChatRequest) -> ChatR
     if response is None:
         try:
             response = run_agent(question)
+            agent_status = _agent_status_from_response(response)
         except Exception as exc:
             agent_status = "failed"
             logger.exception("Agent hatası (persistence devam ediyor): %s", exc)

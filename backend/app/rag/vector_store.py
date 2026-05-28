@@ -29,6 +29,9 @@ class VectorSearchResult(TypedDict):
     file_name: str
     category: str
     priority: str
+    title: str
+    url: str
+    source_type: str
 
 
 def get_chroma_client() -> Any:
@@ -177,6 +180,9 @@ def vector_search(query: str, top_k: int = 5) -> list[VectorSearchResult]:
                 file_name=meta.get("file_name", ""),
                 category=meta.get("category", ""),
                 priority=meta.get("priority", ""),
+                title=meta.get("title", ""),
+                url=meta.get("url", ""),
+                source_type=meta.get("source_type", ""),
             )
         )
     return parsed
