@@ -27,6 +27,8 @@ class ChunkRecord(TypedDict, total=False):
     content_type: str
     section_title: str
     indexed_at: str
+    url: str
+    date: str
 
 
 def _indexed_at_iso() -> str:
@@ -48,6 +50,8 @@ def normalize_chunk(raw: dict) -> ChunkRecord:
         content_type=raw.get("content_type", "pdf"),
         section_title=raw.get("section_title", ""),
         indexed_at=raw.get("indexed_at", _indexed_at_iso()),
+        url=raw.get("url", ""),
+        date=raw.get("date", ""),
     )
 
 
@@ -108,6 +112,8 @@ def _make_chunk_record(
         content_type=doc.content_type,
         section_title=doc.section_title,
         indexed_at=indexed_at,
+        url=doc.url,
+        date=doc.date,
     )
 
 
@@ -122,6 +128,7 @@ def build_chunks_from_documents(
     """PDF, Markdown ve diğer kaynaklardan standart metadata ile chunk üretir."""
     records: list[ChunkRecord] = []
     indexed_at = _indexed_at_iso()
+    seen_chunk_ids: set[str] = set()
 
     for doc in documents:
         stem = Path(doc.file_name).stem if doc.file_name else "doc"
@@ -136,9 +143,16 @@ def build_chunks_from_documents(
             id_prefix = stem
 
         for idx, part in enumerate(parts, start=1):
+            chunk_id = f"{id_prefix}_c{idx}"
+            if chunk_id in seen_chunk_ids:
+                suffix = 2
+                while f"{chunk_id}_{suffix}" in seen_chunk_ids:
+                    suffix += 1
+                chunk_id = f"{chunk_id}_{suffix}"
+            seen_chunk_ids.add(chunk_id)
             records.append(
                 _make_chunk_record(
-                    chunk_id=f"{id_prefix}_c{idx}",
+                    chunk_id=chunk_id,
                     text=part,
                     doc=doc,
                     category=category,

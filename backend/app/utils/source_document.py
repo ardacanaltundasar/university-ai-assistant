@@ -18,3 +18,5 @@ class SourceDocument:
     page: int = 0
     section_title: str = ""
     file_path: str = ""
+    url: str = ""
+    date: str = ""

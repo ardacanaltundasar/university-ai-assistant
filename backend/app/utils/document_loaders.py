@@ -12,6 +12,8 @@ from backend.app.utils.text_cleaning import clean_text
 
 SUPPORTED_EXTENSIONS = {".pdf", ".md", ".txt", ".json"}
 
+MIN_WEB_JSON_CONTENT_CHARS = 30
+
 
 def _pdf_pages_to_documents(pdf_dir: Path) -> list[SourceDocument]:
     from backend.app.utils.pdf_loader import PdfPage
@@ -61,8 +63,36 @@ def _load_text_files(directory: Path) -> list[SourceDocument]:
     return documents
 
 
+def _web_json_to_document(json_path: Path, item: dict) -> SourceDocument | None:
+    """Crawler çıktısı: tek kayıt {title, url, content, source_type, content_type, ...}."""
+    title = str(item.get("title") or item.get("name") or json_path.stem)
+    body = str(item.get("content") or item.get("body") or item.get("text") or "")
+    body = clean_text(body)
+    if len(body) < MIN_WEB_JSON_CONTENT_CHARS:
+        return None
+
+    url = str(item.get("url") or "").strip()
+    date_raw = item.get("date")
+    date = "" if date_raw is None else str(date_raw).strip()
+    source_type = str(item.get("source_type") or "web")
+    content_type = str(item.get("content_type") or "web_page")
+    return SourceDocument(
+        file_name=json_path.name,
+        source=str(json_path),
+        source_type=source_type,
+        title=title,
+        content_type=content_type,
+        text=body,
+        page=0,
+        section_title=title,
+        file_path=str(json_path),
+        url=url,
+        date=date,
+    )
+
+
 def _load_json_files(directory: Path) -> list[SourceDocument]:
-    """Web duyuruları için basit JSON: liste veya {items: [...]} formatı."""
+    """JSON: web crawler tek kayıt, liste veya {items: [...]} formatı."""
     if not directory.exists():
         return []
     documents: list[SourceDocument] = []
@@ -71,6 +101,15 @@ def _load_json_files(directory: Path) -> list[SourceDocument]:
         try:
             payload = json.loads(json_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
+            continue
+
+        if isinstance(payload, dict) and (
+            payload.get("source_type") == "web"
+            or ("content" in payload and "url" in payload)
+        ):
+            doc = _web_json_to_document(json_path, payload)
+            if doc:
+                documents.append(doc)
             continue
 
         items: list = []

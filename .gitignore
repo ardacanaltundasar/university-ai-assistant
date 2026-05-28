@@ -2,6 +2,7 @@
 .env
 .venv/
 venv/
+.env.backup
 
 # Python
 __pycache__/
@@ -23,6 +24,10 @@ data/processed/
 data/raw/pdf/*.pdf
 !data/raw/pdf/.gitkeep
 
+# Web crawler çıktıları (JSON) repoda tutulmaz
+data/raw/web/*.json
+!data/raw/web/.gitkeep
+
 # IDE
 .idea/
 .vscode/
@@ -34,7 +39,6 @@ data/raw/pdf/*.pdf
 
 # Docker
 *.log
+
+# context.md
 context.md
-.env.backup
-.env.backup
-.env.backup

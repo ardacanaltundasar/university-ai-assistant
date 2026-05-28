@@ -85,6 +85,8 @@ def _chunk_metadata(chunk: ChunkRecord) -> dict:
         "content_type": chunk.get("content_type", "pdf"),
         "section_title": chunk.get("section_title", "") or "",
         "indexed_at": chunk.get("indexed_at", ""),
+        "url": chunk.get("url", "") or "",
+        "date": chunk.get("date", "") or "",
     }
 
 

@@ -1,6 +1,6 @@
 # University AI Assistant
 
-Üniversite kaynakları, akademik belgeler ve ders içerikleri üzerinde çalışan RAG tabanlı, tool destekli yapay zekâ asistan platformu.
+**University AI Assistant**, üniversite kaynakları, akademik belgeler, duyurular ve ders içerikleri üzerinde çalışan RAG tabanlı, tool destekli bir yapay zekâ asistan platformudur.
 
 ---
 
@@ -20,22 +20,27 @@ Kaynak bulunamadığında sistem kesin cevap vermek yerine güvenli bir fallback
 ## Temel Özellikler
 
 - Kaynaklı soru-cevap (citation ile)
-- PDF ve Markdown ingestion
+- PDF, Markdown ve Web JSON ingestion
+- Public web crawler (`scripts/crawl_website.py`)
+- PDF link discovery ve download
+- Direct PDF URL handling (crawler)
 - ChromaDB semantic / vector search
 - BM25 keyword search (`rank-bm25`)
-- Hybrid retrieval (vektör + anahtar kelime birleşimi)
-- LangGraph tabanlı agent workflow
+- Hybrid retrieval (vektör + anahtar kelime)
+- LangGraph agent workflow
 - Intent routing (soru türüne göre dal seçimi)
-- Open Library ile akademik kaynak / kitap önerisi
-- PostgreSQL ile kalıcı sohbet geçmişi, agent run ve tool call logları
-- Redis answer cache (tekrarlayan sorularda LLM/retrieval maliyetini azaltır)
+- Open Library resource recommender
+- Redis answer cache
+- PostgreSQL chat history, agent run ve tool call logları
+- Streamlit chat UI (oturum geçmişi, agent steps gösterimi)
 - Docker Compose ile tek komutla çalıştırma
-- Modern Streamlit sohbet arayüzü (oturum geçmişi, silme, agent steps)
 - API üzerinden ingestion ve chat uç noktaları
 
 ---
 
 ## Sistem Mimarisi
+
+### Chat ve agent akışı
 
 ```text
 Kullanıcı
@@ -43,14 +48,26 @@ Kullanıcı
   → FastAPI Backend
   → LangGraph Agent
   → Intent Router
-  → RAG Search / Resource Recommender Tool
+  → RAG Search / Resource Recommender
+  → ChromaDB + BM25 / Open Library
   → LLM Answer Generation
   → PostgreSQL (Logs & Chat History)
+  → Redis Answer Cache
   → Response + Sources + Agent Steps
 ```
 
-**Veri katmanı (retrieval):** ham belgeler → chunking → ChromaDB (embedding) + BM25 (keyword)  
-**Uygulama katmanı (kalıcılık):** PostgreSQL — oturumlar, mesajlar, geri bildirim, agent ve tool logları
+### Ingestion ve crawler akışı
+
+```text
+Public Web Sources / PDFs / Markdown
+  → crawl_website.py (opsiyonel; public web için)
+  → data/raw/web (JSON) + data/raw/pdf
+  → ingest_data.py
+  → ChromaDB + BM25
+  → RAG Search
+```
+
+**Kalıcılık:** PostgreSQL — oturumlar, mesajlar, geri bildirim, agent ve tool logları (vektör arama burada yapılmaz).
 
 ---
 
@@ -69,7 +86,7 @@ Kullanıcı
 | **Open Library API** | Ders / konu bazlı kitap ve kaynak önerisi (API key gerekmez) |
 | **Docker Compose** | Backend, frontend, PostgreSQL, Redis tek komutla ayağa kalkar |
 
-Ek: **pypdf** (PDF parsing), **SQLAlchemy** + **Alembic** (veritabanı), **httpx** (frontend → backend).
+Ek: **pypdf** (PDF parsing), **BeautifulSoup** (crawler HTML), **SQLAlchemy** + **Alembic** (veritabanı), **httpx** (frontend → backend).
 
 ---
 
@@ -77,7 +94,7 @@ Ek: **pypdf** (PDF parsing), **SQLAlchemy** + **Alembic** (veritabanı), **httpx
 
 ### RAG Search Tool
 
-PDF ve Markdown kaynaklardan hybrid arama yapar; bulunan pasajlara dayanarak kaynaklı cevap üretir. Yönetmelik maddeleri, akademik takvim, duyuru metinleri ve benzeri indexlenmiş içerikler için kullanılır.
+Indexlenmiş PDF, Markdown ve web JSON kaynaklarında hybrid arama yapar; bulunan pasajlara dayanarak kaynaklı cevap üretir.
 
 - `selected_tool`: `rag_search`
 - Akış: analyze → intent → retrieve → grade → (rewrite) → generate → validate
@@ -91,10 +108,9 @@ Ders içeriği veya konu ifadesine göre [Open Library](https://openlibrary.org)
 
 API yanıtında `agent_steps` ve `selected_tool` alanları döner; Streamlit arayüzünde **Agent adımları** expander’ında gösterilir.
 
-### Gelecek tool’lar (planlanan)
+### Planlanan (henüz yok)
 
-- Web crawler (public duyuru / yönetmelik toplama)
-- Dilekçe / form asistanı
+- Petition / Application Assistant
 - Reranker
 - RAG evaluation
 - Admin panel
@@ -103,7 +119,7 @@ API yanıtında `agent_steps` ve `selected_tool` alanları döner; Streamlit ara
 
 ## Veri Kaynakları
 
-Public repoda **demo Markdown belgeleri** bulunur:
+Public repoda **yalnızca demo Markdown belgeleri** bulunur:
 
 ```text
 data/raw/samples/
@@ -112,17 +128,17 @@ data/raw/samples/
   sample_announcement.md
 ```
 
-Bu metinler tamamen kurgu/demo amaçlıdır (kayıt dondurma, mazeret sınavı, mezuniyet, ders kaydı vb. konuları kapsar).
-
-Gerçek belgeler yalnızca **lokal ortamda** eklenir:
+Bu metinler kurgu/demo amaçlıdır. Gerçek üniversite crawl çıktıları **generated/local data** olarak düşünülmelidir; GitHub’a dahil edilmez:
 
 ```text
-data/raw/pdf/     # PDF dosyaları (.gitignore)
-data/raw/web/     # Markdown, metin, JSON (.gitignore)
+data/raw/web/     # Crawler JSON çıktıları (.gitignore)
+data/raw/pdf/     # İndirilen PDF’ler (.gitignore)
 data/raw/faq/     # İsteğe bağlı Gold FAQ
 ```
 
-**Üretilen indeksler** (GitHub’a dahil edilmez):
+Kullanıcı, kendi `.env` dosyasında `UNIVERSITY_CRAWL_URLS` ve `UNIVERSITY_ALLOWED_DOMAINS` tanımlayarak public kaynakları **lokalde** toplayabilir (örnek değerler `.env.example` içinde).
+
+**Üretilen indeksler** (repoda tutulmaz):
 
 ```text
 data/chroma/      # ChromaDB vektör indeksi
@@ -130,7 +146,7 @@ data/bm25/        # BM25 pickle indeksi
 data/processed/   # chunks.jsonl
 ```
 
-Desteklenen ingestion formatları: `.pdf`, `.md`, `.txt`, `.json`
+Desteklenen ingestion formatları: `.pdf`, `.md`, `.txt`, `.json` (web crawler çıktısı)
 
 ---
 
@@ -179,7 +195,7 @@ streamlit run frontend/streamlit_app.py
 
 ## Ingestion
 
-Belge kaynaklarını chunk’layıp ChromaDB ve BM25 indekslerini oluşturur.
+Belge kaynaklarını chunk’layıp ChromaDB ve BM25 indekslerini oluşturur (`scripts/ingest_data.py`).
 
 **Docker:**
 
@@ -209,20 +225,59 @@ python scripts/ingest_data.py --skip-sources
 
 Alternatif: `POST /ingest` API uç noktası (FastAPI docs).
 
-Chroma metadata örnekleri: `source`, `source_type`, `title`, `content_type`, `page`, `section_title`, `indexed_at`
+Chroma metadata örnekleri: `source`, `source_type`, `title`, `url`, `date`, `content_type`, `page`, `section_title`, `indexed_at`
+
+---
+
+## Web Crawler / Public Source Collector
+
+`scripts/crawl_website.py`, **yalnızca public** üniversite web sayfalarından metin ve PDF toplar. Canlı okul API’si, OBS, öğrenci paneli, login veya kişisel veri içeren kapalı sistemlere **bağlanmaz**.
+
+| Özellik | Açıklama |
+|---------|----------|
+| HTML okuma | Sayfa metni `data/raw/web/` altında JSON olarak kaydedilir |
+| PDF | Sayfadaki linkler ve doğrudan PDF URL’leri `data/raw/pdf/` altına indirilebilir |
+| Domain kısıtı | `UNIVERSITY_ALLOWED_DOMAINS` (ör. `medeniyet.edu.tr` → `*.medeniyet.edu.tr`) |
+| İndeksleme | Crawler sonrası **mutlaka** `ingest_data.py` çalıştırılmalı |
+| Kapsam | `CRAWLER_MAX_PAGES` toplam ziyaret ve link keşfini sınırlar; yalnızca seed URL’lerle sınırlı kalmak için değeri düşük tutulabilir |
+
+**Yerel:**
+
+```bash
+source venv/bin/activate
+# .env: UNIVERSITY_CRAWL_URLS, UNIVERSITY_ALLOWED_DOMAINS (örnekler .env.example)
+
+export PYTHONPATH=.
+python scripts/crawl_website.py
+python scripts/ingest_data.py
+```
+
+**Docker:**
+
+```bash
+docker compose exec backend python scripts/crawl_website.py
+docker compose exec backend python scripts/ingest_data.py
+```
+
+İlgili ortam değişkenleri: `UNIVERSITY_CRAWL_URLS`, `UNIVERSITY_ALLOWED_DOMAINS`, `CRAWLER_OUTPUT_DIR`, `CRAWLER_PDF_DIR`, `CRAWLER_MAX_PAGES`, `CRAWLER_REQUEST_TIMEOUT`, `CRAWLER_DELAY_SECONDS`, `CRAWLER_DOWNLOAD_PDFS` — ayrıntılar `.env.example`.
+
+Örnek public kaynaklar (İstanbul Medeniyet Üniversitesi PoC): ana site, duyurular, akademik takvim PDF, SSS, ders seçimi/kayıt yenileme, harç ödeme, yatay geçiş, eğitim planları, formlar, iletişim — tam URL listesi `.env.example` içinde.
 
 ---
 
 ## Kullanım Örnekleri
 
-**RAG / yönetmelik ve süreç soruları**
+**RAG — demo veya indexlenmiş kaynaklar**
 
 - Kayıt dondurma şartları nelerdir?
-- Mazeret sınavına kimler başvurabilir?
-- Mezuniyet için gerekli şartlar nelerdir?
-- Ders kaydı süreci nasıl işler?
+- Akademik takvim hakkında bilgi ver.
+- Ders seçimi nasıl yapılır?
+- Harç ödeme işlemleri nasıl yapılır?
+- Yatay geçiş duyurusu hakkında bilgi ver.
 
-**Kaynak / kitap önerisi**
+*Public web soruları için önce crawler + ingestion; Redis cache eski cevap döndürebilir (aşağıya bakın).*
+
+**Kaynak önerisi (Open Library)**
 
 - Veri yapıları için kaynak öner.
 - Algoritma dersi için kitap öner.
@@ -241,7 +296,7 @@ PostgreSQL, **kalıcı uygulama verisini** tutar:
 - `agent_runs` — agent çalışma kayıtları
 - `tool_calls` — tool çağrı logları
 
-PostgreSQL **vektör arama için kullanılmaz**. Arama katmanı ayrıdır:
+PostgreSQL **vektör arama için kullanılmaz**. Arama katmanı:
 
 | Bileşen | Görev |
 |---------|--------|
@@ -257,7 +312,7 @@ Chroma ve BM25 indeksleri dosya tabanlıdır (`data/chroma`, `data/bm25`).
 
 Redis iki amaçla kullanılır:
 
-- **Answer cache** — Aynı normalize edilmiş soru tekrar sorulduğunda cevap `answer_cache:{intent}:{hash}` anahtarıyla Redis’ten döner; agent, RAG, LLM ve tool akışı yeniden çalıştırılmaz. Yanıt süresi ve API maliyeti düşer.
+- **Answer cache** — Aynı normalize edilmiş soru tekrar sorulduğunda cevap `answer_cache:{intent}:{hash}` anahtarıyla Redis’ten dönebilir. Agent, RAG, LLM ve tool akışı yeniden çalıştırılmaz; yanıt süresi ve API maliyeti azalır.
 - **Health / status** — `GET /health` yanıtında `redis: ready | unavailable` alanı.
 
 Yapılandırma (`.env`):
@@ -270,11 +325,14 @@ REDIS_URL=redis://localhost:6379/0
 
 Redis kullanılamazsa sistem cache’siz devam eder; chat akışı etkilenmez.
 
-Cache doğrulama:
+**Crawler + ingest sonrası test:** Eski cevaplar cache’de kalabilir. Yeni indekslenmiş içeriği görmek için cache temizleyin veya soruyu farklı ifadeyle sorun:
 
 ```bash
 docker compose exec redis redis-cli keys '*answer_cache*'
+docker compose exec redis redis-cli FLUSHDB
 ```
+
+`FLUSHDB` seçili Redis veritabanındaki tüm anahtarları siler; yalnızca geliştirme ortamında kullanın.
 
 ---
 
@@ -282,23 +340,28 @@ docker compose exec redis redis-cli keys '*answer_cache*'
 
 - Bu proje **lokal PoC / demo** olarak geliştirilmiştir; production hardening kapsamı dışındadır.
 - Canlı üniversite API entegrasyonu (OBS, e-Devlet vb.) **içermez**.
+- OBS, login veya öğrenci paneli gibi sistemlere **bağlanmaz**.
 - Kişisel öğrenci verisi (not, borç, gerçek transkript) **işlemez**.
 - Kimlik doğrulama veya kurumsal SSO **yoktur**.
 - Cevaplar **yalnızca indexlenmiş kaynaklarla** sınırlıdır; kaynak yoksa kesin iddia üretilmez.
 - Resmi işlem yapmaz; bilgilendirme ve asistanlık amacı taşır.
-- Hava durumu, dilekçe üretimi gibi henüz desteklenmeyen intent’ler için dürüst bilgi mesajı döner.
+- Crawler **yalnızca public web** kaynakları içindir; güncel içerik için crawl + ingest periyodik tekrarlanmalıdır.
+- Petition/Application Assistant ve benzeri intent’ler **henüz desteklenmez**; dürüst bilgi mesajı döner.
 
 ---
 
 ## Yol Haritası
 
-- Web crawler ile public duyuru / yönetmelik toplama
-- Dilekçe / form asistanı
-- Reranker entegrasyonu
-- RAG evaluation ve kalite metrikleri
-- Admin panel (belge ve indeks yönetimi)
-- Kimlik doğrulama (auth)
-- Çoklu üniversite / çoklu koleksiyon desteği
+Sıradaki planlar:
+
+- Petition / Application Assistant
+- Reranker
+- RAG evaluation
+- Admin panel
+- Feedback dashboard
+- Semantic cache improvements
+- Auth / role-based access
+- Çoklu üniversite desteği
 
 ---
 
@@ -314,6 +377,8 @@ python scripts/test_intent_routing.py
 python scripts/demo_questions.py
 ```
 
+Crawler + ingestion sonrası UI testinde Redis cache’i temizlemeyi unutmayın.
+
 ---
 
 ## Klasör Yapısı
@@ -322,15 +387,15 @@ python scripts/demo_questions.py
 backend/app/     FastAPI, agent, RAG, tools, db, services
 frontend/        Streamlit UI
 data/            Ham veri, işlenmiş chunk, indeksler
-scripts/         Ingestion ve test betikleri
+scripts/         crawl_website.py, ingest_data.py, test betikleri
 alembic/         Veritabanı migration
 docker-compose.yml
 ```
 
-Detaylı mimari notlar: [`context.md`](context.md) · Sürüm notları: [`CHANGELOG.md`](CHANGELOG.md)
+Sürüm notları: [`CHANGELOG.md`](CHANGELOG.md)
 
 ---
 
 ## Lisans
 
-Repoda henüz bir `LICENSE` dosyası tanımlı değildir. Projeyi dağıtırken uygun bir açık kaynak lisansı (ör. MIT) eklemeniz önerilir.
+Repoda henüz bir `LICENSE` dosyası tanımlı değildir. Projeyi dağıtırırken uygun bir açık kaynak lisansı (ör. MIT) eklemeniz önerilir.

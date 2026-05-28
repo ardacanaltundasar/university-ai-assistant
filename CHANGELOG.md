@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.4.0 - Web Crawler / Public Source Collector
+
+- Added public web crawler script (`scripts/crawl_website.py`)
+- Added İstanbul Medeniyet University public source configuration examples (`.env.example`)
+- Added direct PDF URL handling
+- Added HTML content extraction
+- Added PDF link discovery and download
+- Added web JSON source format (`data/raw/web/`)
+- Added crawler configuration variables
+- Added allowed-domain restriction with subdomain support (`medeniyet.edu.tr`, `*.medeniyet.edu.tr`)
+- Added web JSON ingestion support
+- Documented crawler + ingestion workflow (README)
+
 ## v0.3.0 - Redis Answer Cache
 
 - Added Redis answer cache
