@@ -34,6 +34,7 @@ Kaynak bulunamadığında sistem kesin cevap vermek yerine güvenli bir fallback
 - Redis answer cache
 - PostgreSQL chat history, agent run ve tool call logları
 - Streamlit chat UI (oturum geçmişi, agent steps gösterimi)
+- Yönetim Paneli (sistem durumu, bilgi tabanı, önbellek, agent logları)
 - Docker Compose ile tek komutla çalıştırma
 - `INCLUDE_SAMPLE_DATA` ile demo / gerçek kaynak ingestion ayrımı
 - API üzerinden ingestion ve chat uç noktaları
@@ -127,7 +128,49 @@ API yanıtında `agent_steps` ve `selected_tool` alanları döner; Streamlit ara
 - Petition / Application Assistant (dilekçe/form üretimi — v0.5.0 Process Navigator bunu **içermez**)
 - Reranker
 - RAG evaluation
-- Admin panel
+
+---
+
+## Yönetim Paneli
+
+Streamlit arayüzünde sidebar üstünden **Sohbet** ve **Yönetim Paneli** görünümleri arasında geçiş yapılır. Amaç, projeyi yalnızca sohbet uygulaması değil **gözlemlenebilir ve yönetilebilir bir AI asistan platformu** olarak sunmaktır.
+
+**Lokal PoC:** Kimlik doğrulama yoktur. Üretim ortamında bu ekran **kimlik doğrulama ile korunmalıdır**.
+
+### Bölümler
+
+| Bölüm | İçerik |
+|--------|--------|
+| **Sistem Durumu** | Backend, PostgreSQL, Redis, Chroma/BM25, OpenAI model adları (API anahtarı **gösterilmez**), `debug_retrieval` |
+| **Bilgi Tabanı Durumu** | `data/raw/pdf`, `web`, `samples` sayıları, `INCLUDE_SAMPLE_DATA`, indeks dosyaları |
+| **Veri Hattı Durumu** | İndeks durumu, son web tarama çıktıları ve son PDF kaynakları |
+| **Önbellek Durumu** | Redis durumu, `answer_cache:*` anahtar sayısı, örnek anahtar listesi (salt okunur) |
+| **Agent Gözlemlenebilirliği** | Oturum/mesaj/agent run/tool call sayıları; son kayıtlar (metinler kısaltılır) |
+| **Operasyonel Hazırlık** | Servis bağlantıları, indeksler ve veri hattı için otomatik hazırlık kontrolleri |
+
+### Doğrulama örnekleri
+
+Chat ve agent akışını doğrulamak için örnek sorular (yönetim panelinde listelenmez; normal sohbetten denenebilir):
+
+- *Ders seçimi nasıl yapılır?* — süreç rehberi (`process_navigator`)
+- *Harç ödeme işlemleri nasıl yapılır?* — süreç rehberi
+- *Yatay geçiş için ne yapmam gerekiyor?* — süreç rehberi
+- *Kayıt dondurma şartları nelerdir?* — RAG / yönetmelik
+- *Veri yapıları için kaynak öner.* — Open Library kaynak önerisi
+
+### Backend endpoint
+
+```http
+GET /admin/diagnostics
+```
+
+Read-only metadata döner; `.env` içeriği veya `OPENAI_API_KEY` **asla** yanıtta yer almaz.
+
+Örnek kullanım:
+
+```bash
+curl -s http://127.0.0.1:8000/admin/diagnostics | jq .
+```
 
 ---
 
@@ -415,11 +458,40 @@ Sıradaki planlar:
 - Petition / Application Assistant
 - Reranker
 - RAG evaluation
-- Admin panel
+- Gelişmiş yönetim paneli (rol tabanlı erişim ile)
 - Feedback dashboard
 - Semantic cache improvements
 - Auth / role-based access
 - Çoklu üniversite desteği
+
+---
+
+## Değerlendirme (RAG / Agent Evaluation)
+
+Belirli test soruları üzerinden sistemi **ölçülebilir** şekilde değerlendirmek için terminal scripti kullanılır. Tez veya raporlarda “test ve değerlendirme” bölümünde özet metrikler ve rapor çıktıları referans alınabilir.
+
+Soru seti (public): `data/evaluation/eval_questions.json`
+
+```bash
+docker compose up --build
+
+export PYTHONPATH=.
+python scripts/evaluate_rag.py --base-url http://localhost:8000 --flush-cache
+```
+
+**Ne üretir?**
+
+- Her soru için: intent/tool eşleşmesi, anahtar kelime skoru, kaynak zorunluluğu, fallback tespiti, gecikme (`latency_ms`)
+- Terminalde özet tablo
+- `outputs/evaluation/eval_report_<timestamp>.json` ve `.md` raporları
+
+**CLI seçenekleri:** `--file`, `--base-url`, `--flush-cache`, `--limit`, `--output-dir`
+
+**Notlar:**
+
+- Script mevcut `POST /chat` endpoint’ini kullanır; frontend veya agent kodu değiştirilmez.
+- LLM tabanlı cevaplarda **%100 deterministik** sonuç beklenmemelidir; tekrarlayan koşullarda `--flush-cache` önerilir.
+- `outputs/evaluation/` `.gitignore` altındadır; soru seti repoda kalır.
 
 ---
 
@@ -433,6 +505,7 @@ python scripts/test_bm25_search.py "tek ders sınavı"
 python scripts/test_hybrid_search.py
 python scripts/test_intent_routing.py
 python scripts/demo_questions.py
+python scripts/evaluate_rag.py --base-url http://localhost:8000 --flush-cache
 ```
 
 Crawler + ingestion sonrası UI testinde Redis cache’i temizlemeyi unutmayın.
@@ -445,7 +518,7 @@ Crawler + ingestion sonrası UI testinde Redis cache’i temizlemeyi unutmayın.
 backend/app/     FastAPI, agent, RAG, tools, db, services
 frontend/        Streamlit UI
 data/            Ham veri, işlenmiş chunk, indeksler
-scripts/         crawl_website.py, ingest_data.py, test betikleri
+scripts/         crawl_website.py, ingest_data.py, evaluate_rag.py, test betikleri
 alembic/         Veritabanı migration
 docker-compose.yml
 ```

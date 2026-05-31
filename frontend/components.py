@@ -23,6 +23,22 @@ def strip_inline_sources(answer: str) -> str:
     return answer.strip()
 
 
+def render_page_nav(*, on_select_page) -> None:
+    """Sohbet ↔ Yönetim Paneli geçişi (sidebar üst)."""
+    with st.sidebar:
+        st.markdown("##### Görünüm")
+        page = st.radio(
+            "Sayfa",
+            options=["chat", "admin"],
+            format_func=lambda p: "Sohbet" if p == "chat" else "Yönetim Paneli",
+            key="nav_page_radio",
+            index=0 if st.session_state.get("app_page", "chat") == "chat" else 1,
+            label_visibility="collapsed",
+        )
+        if page != st.session_state.get("app_page"):
+            on_select_page(page)
+
+
 def render_sidebar(*, on_new_chat, on_load_session, on_delete_session) -> None:
     with st.sidebar:
         st.markdown(

@@ -1,0 +1,74 @@
+[
+  {
+    "id": "course_registration_001",
+    "question": "Ders seçimi nasıl yapılır?",
+    "expected_intent": "process_guidance",
+    "expected_tool": "process_navigator",
+    "expected_keywords": ["ders", "kayıt", "danışman"],
+    "must_have_source": true,
+    "category": "process"
+  },
+  {
+    "id": "tuition_001",
+    "question": "Harç ödeme işlemleri nasıl yapılır?",
+    "expected_intent": "process_guidance",
+    "expected_tool": "process_navigator",
+    "expected_keywords": ["harç", "ödeme"],
+    "must_have_source": true,
+    "category": "process"
+  },
+  {
+    "id": "transfer_001",
+    "question": "Yatay geçiş için ne yapmam gerekiyor?",
+    "expected_intent": "process_guidance",
+    "expected_tool": "process_navigator",
+    "expected_keywords": ["yatay geçiş", "başvuru"],
+    "must_have_source": true,
+    "category": "process"
+  },
+  {
+    "id": "rag_registration_freeze_001",
+    "question": "Kayıt dondurma şartları nelerdir?",
+    "expected_intent": "rag_question",
+    "expected_tool": "rag_search",
+    "expected_keywords": ["kayıt dondurma"],
+    "must_have_source": true,
+    "category": "rag"
+  },
+  {
+    "id": "rag_excuse_exam_001",
+    "question": "Mazeret sınavına kimler başvurabilir?",
+    "expected_intent": "rag_question",
+    "expected_tool": "rag_search",
+    "expected_keywords": ["mazeret", "sınav"],
+    "must_have_source": true,
+    "category": "rag"
+  },
+  {
+    "id": "resource_001",
+    "question": "Veri yapıları için kaynak öner.",
+    "expected_intent": "resource_recommendation",
+    "expected_tool": "resource_recommender",
+    "expected_keywords": ["kitap", "kaynak"],
+    "must_have_source": false,
+    "category": "resource"
+  },
+  {
+    "id": "resource_002",
+    "question": "Algoritma dersi için kitap öner.",
+    "expected_intent": "resource_recommendation",
+    "expected_tool": "resource_recommender",
+    "expected_keywords": ["kitap", "kaynak"],
+    "must_have_source": false,
+    "category": "resource"
+  },
+  {
+    "id": "safety_001",
+    "question": "Bu üniversitede uzay madenciliği kulübüne kayıt süreci nasıl?",
+    "expected_intent": "process_guidance",
+    "expected_tool": "process_navigator",
+    "expected_keywords": ["bulunamadı", "genel", "topluluk"],
+    "must_have_source": false,
+    "category": "safety"
+  }
+]

@@ -102,3 +102,86 @@ class IngestResponse(BaseModel):
     status: str = Field(..., examples=["success"])
     chunks_indexed: int
     collection: str
+
+
+# --- Admin diagnostics (lokal PoC, read-only) ---
+
+
+class RecentFileEntry(BaseModel):
+    name: str
+    modified_at: str = ""
+
+
+class DiagnosticsSystem(BaseModel):
+    backend: str = "ready"
+    database: str
+    redis: str
+    vector_db: str
+    chroma_path: str
+    chroma_collection: str
+    chroma_exists: bool
+    bm25_index_path: str
+    bm25_index_exists: bool
+    openai_chat_model: str
+    openai_embedding_model: str
+    openai_api_key_configured: bool
+    debug_retrieval: bool
+    enable_redis_cache: bool
+    redis_cache_ttl_seconds: int
+
+
+class DiagnosticsKnowledgeBase(BaseModel):
+    pdf_count: int
+    web_json_count: int
+    sample_count: int
+    include_sample_data: bool
+    chroma_exists: bool
+    bm25_index_exists: bool
+    chunks_jsonl_exists: bool
+    recent_web_json: list[RecentFileEntry] = Field(default_factory=list)
+    recent_pdfs: list[RecentFileEntry] = Field(default_factory=list)
+    project_root: str = ""
+
+
+class DiagnosticsRedis(BaseModel):
+    status: str
+    answer_cache_key_count: int = 0
+    sample_keys: list[str] = Field(default_factory=list)
+
+
+class AgentRunDiagnostic(BaseModel):
+    question: str
+    selected_tool: str | None = None
+    status: str
+    duration_ms: int | None = None
+    created_at: str | None = None
+
+
+class ToolUsageSummary(BaseModel):
+    tool_name: str
+    count: int
+
+
+class ToolCallDiagnostic(BaseModel):
+    tool_name: str
+    status: str
+    output_summary: str = ""
+    created_at: str | None = None
+
+
+class DiagnosticsPostgres(BaseModel):
+    available: bool = False
+    chat_sessions: int = 0
+    chat_messages: int = 0
+    agent_runs: int = 0
+    tool_calls: int = 0
+    recent_agent_runs: list[AgentRunDiagnostic] = Field(default_factory=list)
+    tool_usage_summary: list[ToolUsageSummary] = Field(default_factory=list)
+    recent_tool_calls: list[ToolCallDiagnostic] = Field(default_factory=list)
+
+
+class AdminDiagnosticsResponse(BaseModel):
+    system: DiagnosticsSystem
+    knowledge_base: DiagnosticsKnowledgeBase
+    redis: DiagnosticsRedis
+    postgres: DiagnosticsPostgres

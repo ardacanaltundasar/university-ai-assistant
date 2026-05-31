@@ -40,5 +40,8 @@ data/raw/web/*.json
 # Docker
 *.log
 
+# Değerlendirme raporları (soru seti data/evaluation/ altında kalır)
+outputs/evaluation/
+
 # context.md
 context.md

@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.7.0 - RAG / Agent Evaluation Script
+
+- Added evaluation question set (`data/evaluation/eval_questions.json`)
+- Added terminal-based evaluation script (`scripts/evaluate_rag.py`)
+- Added intent/tool/keyword/source/latency metrics
+- Added JSON and Markdown report output under `outputs/evaluation/`
+- Added optional Redis cache flush (`--flush-cache`) for clean evaluation runs
+
+## v0.6.0 - Admin / Diagnostic Dashboard
+
+- Added Streamlit admin/diagnostics view
+- Added system health overview
+- Added knowledge base status
+- Added Redis cache visibility
+- Added PostgreSQL agent run/tool call observability
+- Added operational readiness checks on the admin dashboard
+- Added read-only `GET /admin/diagnostics` endpoint (no API keys in response)
+- Refined Admin / Diagnostics UI wording for a more production-oriented presentation
+- Replaced demo-specific wording with operational readiness terminology
+
 ## v0.5.0 - University Process Navigator
 
 - Added `INCLUDE_SAMPLE_DATA` configuration to control whether demo sample documents are included during ingestion

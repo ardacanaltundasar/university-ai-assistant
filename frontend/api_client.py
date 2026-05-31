@@ -44,6 +44,10 @@ def fetch_health() -> dict:
     return _request("GET", "/health")
 
 
+def fetch_admin_diagnostics() -> dict:
+    return _request("GET", "/admin/diagnostics")
+
+
 def create_chat_session(title: str = "Yeni Sohbet") -> dict:
     return _request("POST", "/chat/sessions", json={"title": title})
 

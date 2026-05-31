@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.agent.prompts import FALLBACK_MESSAGE
 from backend.app.api.schemas import (
+    AdminDiagnosticsResponse,
     ChatRequest,
     ChatResponse,
     HealthResponse,
@@ -33,6 +34,7 @@ from backend.app.db.schemas import (
 from backend.app.rag.ingest import CHUNKS_OUTPUT_FILE, IngestError, run_ingestion, summarize_sources
 from backend.app.rag.vector_store import is_vector_store_ready
 from backend.app.services.chat_persistence import run_chat_with_persistence
+from backend.app.services.diagnostics_service import gather_admin_diagnostics
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +77,19 @@ def _parse_uuid(value: str, *, field: str = "id") -> uuid.UUID:
         return uuid.UUID(str(value))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=f"Geçersiz {field}.") from exc
+
+
+@router.get(
+    "/admin/diagnostics",
+    response_model=AdminDiagnosticsResponse,
+    tags=["admin"],
+)
+def admin_diagnostics(
+    db: Session | None = Depends(get_db_optional),
+) -> AdminDiagnosticsResponse:
+    """Lokal PoC — sistem sağlığı ve gözlemlenebilirlik (read-only, API key yok)."""
+    payload = gather_admin_diagnostics(db)
+    return AdminDiagnosticsResponse.model_validate(payload)
 
 
 @router.get("/health", response_model=HealthResponse, tags=["system"])

@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     enable_redis_cache: bool = True
     redis_cache_ttl_seconds: int = 3600
 
+    enable_agent_self_check: bool = True
+    max_retrieval_retries: int = 1
+
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
 

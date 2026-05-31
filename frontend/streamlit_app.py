@@ -1,10 +1,11 @@
 """
 Üniversite Öğrenci İşleri AI Asistanı — Streamlit arayüzü.
-ChatGPT / Gemini benzeri sohbet deneyimi.
+ChatGPT / Gemini benzeri sohbet deneyimi + Yönetim Paneli.
 """
 
 import streamlit as st
 
+from admin_view import render_admin_page
 from api_client import (
     ApiClientError,
     DELETE_SESSION_ERROR,
@@ -20,6 +21,7 @@ from components import (
     render_assistant_message,
     render_chat_history,
     render_header,
+    render_page_nav,
     render_sidebar,
     render_suggestion_cards,
 )
@@ -46,6 +48,18 @@ st.set_page_config(
 
 apply_custom_styles()
 init_session_state()
+
+
+def _set_app_page(page: str) -> None:
+    st.session_state.app_page = page
+    st.rerun()
+
+
+render_page_nav(on_select_page=_set_app_page)
+
+if st.session_state.get("app_page", "chat") == "admin":
+    render_admin_page()
+    st.stop()
 
 
 def refresh_session_list() -> None:
@@ -112,7 +126,7 @@ def send_question(question: str) -> None:
             if response.get("session_id"):
                 set_active_session(response["session_id"])
 
-            citations = response.get("citations", [])
+            citations = response.get("citations") or []
             answer = response.get("answer", "")
 
             agent_steps = response.get("agent_steps") or response.get("steps") or []
