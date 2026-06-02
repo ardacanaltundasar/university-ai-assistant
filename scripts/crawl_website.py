@@ -30,7 +30,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ENV_FILE = PROJECT_ROOT / ".env"
 
 DEFAULT_USER_AGENT = (
-    "UniversityAIAssistant/0.4.0 (+https://github.com; public-source-collector; PoC)"
+    "UniversityAIAssistant/0.4.0 (+https://github.com; public-source-collector)"
 )
 MIN_CONTENT_CHARS = 40
 SKIP_TAGS = ("script", "style", "nav", "footer", "header", "noscript", "iframe")

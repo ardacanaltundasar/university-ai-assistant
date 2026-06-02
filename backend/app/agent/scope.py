@@ -21,7 +21,7 @@ OUT_OF_SCOPE_RULES: list[tuple[str, str]] = [
 
 def is_out_of_scope(question: str) -> tuple[bool, str]:
     """
-    PoC kapsamı dışı soruları tespit eder.
+    Kapsam dışı soruları tespit eder.
     'OBS şifremi unuttum ne yapmalıyım?' gibi genel yönlendirme soruları kapsam içindedir.
     """
     q = question.lower().strip()

@@ -82,12 +82,13 @@ def _parse_uuid(value: str, *, field: str = "id") -> uuid.UUID:
 @router.get(
     "/admin/diagnostics",
     response_model=AdminDiagnosticsResponse,
-    tags=["admin"],
+    tags=["Yönetim Paneli"],
+    summary="Yönetim paneli tanılama verileri",
 )
 def admin_diagnostics(
     db: Session | None = Depends(get_db_optional),
 ) -> AdminDiagnosticsResponse:
-    """Lokal PoC — sistem sağlığı ve gözlemlenebilirlik (read-only, API key yok)."""
+    """Sistem sağlığı ve gözlemlenebilirlik (salt okunur; API anahtarı döndürülmez)."""
     payload = gather_admin_diagnostics(db)
     return AdminDiagnosticsResponse.model_validate(payload)
 

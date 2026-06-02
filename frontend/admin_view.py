@@ -1,4 +1,4 @@
-"""Yönetim Paneli — lokal PoC gözlemlenebilirlik ve operasyon durumu."""
+"""Yönetim Paneli — sistem gözlemlenebilirliği ve operasyon durumu."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from api_client import ApiClientError, fetch_admin_diagnostics
 
 
 def _get_admin_password() -> str:
-    """Ortam değişkeni yoksa lokal PoC varsayılanı (değer UI'da gösterilmez)."""
+    """Ortam değişkeni yoksa geliştirme ortamı varsayılanı (değer UI'da gösterilmez)."""
     configured = os.getenv("ADMIN_DASHBOARD_PASSWORD", "").strip()
     return configured if configured else "1234"
 
@@ -97,7 +97,7 @@ def render_admin_page() -> None:
     header_col, logout_col = st.columns([5, 1])
     with header_col:
         st.markdown("## Yönetim Paneli")
-        st.caption("Lokal PoC ortamında sistem ve veri hattı gözlemlenebilirliği.")
+        st.caption("Sistem ve veri hattı gözlemlenebilirliği.")
     with logout_col:
         st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
         if st.button(

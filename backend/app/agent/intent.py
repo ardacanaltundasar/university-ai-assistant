@@ -163,7 +163,7 @@ Sınıflar:
 - rag_question: yönetmelik, kayıt, sınav, mezuniyet, belge, kampüs işlemleri (şartlar, kimler)
 - process_guidance: adım adım süreç, nasıl yapılır, hangi belgeler, başvuru süreci
 - resource_recommendation: ders için kitap/kaynak önerisi, ne çalışmalıyım, akademik okuma
-- petition_generation: dilekçe veya başvuru metni yazdırma (henüz desteklenmiyor)
+- petition_generation: dilekçe veya başvuru metni yazdırma (desteklenmiyor)
 - weather_question: hava durumu (desteklenmiyor)
 - unknown: belirsiz
 

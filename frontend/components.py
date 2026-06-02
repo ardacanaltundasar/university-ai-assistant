@@ -29,7 +29,8 @@ PROJECT_TAGLINE = (
     "RAG tabanlı yapay zekâ asistanı."
 )
 DISCLAIMER_FOOTER = (
-    "Akademik amaçlı lokal PoC çalışmasıdır; resmi üniversite uygulaması değildir."
+    "Akademik bitirme projesi kapsamında geliştirilmiştir; "
+    "resmi üniversite uygulaması değildir."
 )
 
 

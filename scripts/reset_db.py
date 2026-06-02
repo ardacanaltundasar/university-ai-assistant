@@ -6,7 +6,11 @@
 
 
 def main() -> None:
-    print("Henüz uygulanmadı — veri katmanı hazır olduğunda eklenecek.")
+    print(
+        "Manuel indeks sıfırlama:\n"
+        "  1. data/chroma/, data/bm25/ ve data/processed/ dizinlerini silin\n"
+        "  2. python scripts/ingest_data.py çalıştırın"
+    )
 
 
 if __name__ == "__main__":

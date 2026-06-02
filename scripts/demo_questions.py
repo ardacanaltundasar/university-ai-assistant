@@ -1,4 +1,4 @@
-"""Demo soru seti — agent akışını terminalde test eder.
+"""Örnek soru seti — agent akışını terminalde doğrular.
 
 Çalıştırma (proje kökünden):
     export PYTHONPATH=.
@@ -74,7 +74,7 @@ def evaluate(question: str, response) -> tuple[bool, str]:
 
 
 def main() -> None:
-    print("Medeniyet Üniversitesi AI Asistanı — Demo Test\n" + "=" * 60)
+    print("Medeniyet Üniversitesi AI Asistanı — Örnek Soru Doğrulaması\n" + "=" * 60)
     passed = 0
     failed = 0
 

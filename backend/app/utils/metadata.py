@@ -1,1 +1,1 @@
-"""Chunk metadata yardımcıları — henüz uygulanmadı."""
+"""Chunk metadata yardımcıları — gelecek sürümde genişletilecektir."""

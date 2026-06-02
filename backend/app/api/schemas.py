@@ -104,7 +104,7 @@ class IngestResponse(BaseModel):
     collection: str
 
 
-# --- Admin diagnostics (lokal PoC, read-only) ---
+# --- Yönetim paneli tanılama (salt okunur) ---
 
 
 class RecentFileEntry(BaseModel):

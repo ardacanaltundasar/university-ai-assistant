@@ -1,6 +1,6 @@
 """
 Medeniyet Üniversitesi AI Asistanı — Streamlit arayüzü.
-Sohbet + Yönetim Paneli (akademik lokal PoC; resmi üniversite uygulaması değildir).
+Sohbet ve Yönetim Paneli (akademik bitirme projesi; resmi üniversite uygulaması değildir).
 """
 
 import streamlit as st

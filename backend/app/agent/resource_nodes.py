@@ -12,8 +12,8 @@ from backend.app.tools.resource_recommender import recommend_books_for_course
 logger = logging.getLogger(__name__)
 
 UNSUPPORTED_INTENT_MESSAGE = (
-    "Bu özellik henüz desteklenmiyor. "
-    "Şu an yönetmelik/duyuru soruları (RAG), üniversite süreç rehberi ve ders kaynak önerisi "
+    "Bu istek şu an desteklenmiyor. "
+    "Yönetmelik ve duyuru soruları (RAG), üniversite süreç rehberi ve ders kaynak önerisi "
     "sunulmaktadır."
 )
 
@@ -69,7 +69,7 @@ def unsupported_intent_response(state: AgentState) -> dict:
         "selected_tool": f"unsupported_{label}",
         "agent_steps": [
             f"Niyet algılandı: {label}",
-            "Bu özellik henüz desteklenmiyor",
+            "Bu istek desteklenmiyor",
         ],
         "tool_calls_log": [],
         "answer_valid": False,

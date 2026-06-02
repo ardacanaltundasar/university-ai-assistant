@@ -94,7 +94,7 @@ def run_document_ingestion(
         raise IngestError(
             f"İşlenecek belge bulunamadı. Desteklenen formatlar: .pdf, .md, .txt, .json\n"
             f"Kontrol edilen klasörler: {searched}\n"
-            f"Demo için: {RAW_SAMPLES_DIR}",
+            f"Örnek belgeler için: {RAW_SAMPLES_DIR}",
             code="no_documents",
         )
 

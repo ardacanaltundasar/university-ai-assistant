@@ -1,4 +1,4 @@
-"""Read-only admin / diagnostics metadata — lokal PoC; API key döndürmez."""
+"""Yönetim paneli tanılama verileri — salt okunur; API anahtarı döndürülmez."""
 
 from __future__ import annotations
 

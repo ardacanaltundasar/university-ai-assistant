@@ -42,7 +42,8 @@ app = FastAPI(
     title="Medeniyet Üniversitesi AI Asistan API",
     description=(
         "İstanbul Medeniyet Üniversitesi public kaynakları üzerinde çalışan "
-        "RAG tabanlı AI asistan — akademik lokal PoC (resmi üniversite uygulaması değildir)."
+        "RAG tabanlı AI asistan — akademik bitirme projesi "
+        "(resmi üniversite uygulaması değildir)."
     ),
     version="0.7.0",
     lifespan=lifespan,

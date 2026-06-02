@@ -34,7 +34,7 @@ load_env(reload_settings=True)
 
 
 def _include_sample_data_enabled() -> bool:
-    """INCLUDE_SAMPLE_DATA — yoksa true (demo deneyimi)."""
+    """INCLUDE_SAMPLE_DATA — yoksa true (hızlı başlangıç)."""
     raw = os.getenv("INCLUDE_SAMPLE_DATA", "true").strip().lower()
     return raw in ("1", "true", "yes", "on")
 
@@ -88,7 +88,7 @@ def main() -> None:
     parser.add_argument(
         "--samples-only",
         action="store_true",
-        help="Yalnızca data/raw/samples klasörünü işle (public demo)",
+        help="Yalnızca data/raw/samples klasörünü işle (örnek belgeler)",
     )
     args = parser.parse_args()
 

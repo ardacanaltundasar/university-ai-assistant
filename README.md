@@ -2,7 +2,7 @@
 
 **Medeniyet Üniversitesi AI Asistanı**, İstanbul Medeniyet Üniversitesi’nin public web kaynakları, akademik belgeleri, duyuruları ve ders içerikleri üzerinde çalışan RAG tabanlı, tool destekli bir yapay zekâ asistan platformudur.
 
-> **Akademik not:** Bu proje akademik amaçlı bir bitirme projesi / lokal PoC olarak geliştirilmiştir. **Resmi bir İstanbul Medeniyet Üniversitesi uygulaması değildir.** Canlı OBS, öğrenci paneli veya kurumsal SSO entegrasyonu içermez.
+> **Akademik not:** Bu proje İstanbul Medeniyet Üniversitesi’nin public web kaynakları kullanılarak geliştirilmiş akademik amaçlı bir bitirme projesi / lokal PoC çalışmasıdır. **Resmi bir İstanbul Medeniyet Üniversitesi uygulaması değildir.** Canlı OBS, öğrenci paneli veya kurumsal SSO entegrasyonu içermez.
 
 ---
 
@@ -10,7 +10,7 @@
 
 Üniversite bilgisini (yönetmelik, duyuru, akademik takvim, public web sayfaları) doğal dilde sorgulanabilir kılar. Cevaplar **indexlenmiş kaynaklara** dayanır; kaynak yoksa sistem kesin iddia yerine güvenli fallback kullanır.
 
-**Konumlandırma:** Domain-specific, tool-augmented RAG assistant platformu — sıradan bir “öğrenci işleri chatbotu” değil; crawler, hybrid retrieval, araç yönlendirme, Redis önbellek, PostgreSQL logları ve **Yönetim Paneli** ile gözlemlenebilir bir mimari.
+**Konumlandırma:** Domain-specific, tool-augmented RAG assistant platformu — kaynaklı cevap, araç yönlendirme, crawler, hybrid retrieval, Redis önbellek, PostgreSQL logları ve **Yönetim Paneli** ile gözlemlenebilir bir mimari.
 
 ---
 
@@ -29,7 +29,7 @@
 - **Yönetim Paneli** (sistem ve veri hattı gözlemlenebilirliği)
 - **Değerlendirme scripti** (`scripts/evaluate_rag.py`)
 - Docker Compose ile lokal çalıştırma
-- `INCLUDE_SAMPLE_DATA` ile demo / gerçek kaynak ayrımı
+- `INCLUDE_SAMPLE_DATA` ile örnek / gerçek kaynak ayrımı
 
 ---
 
@@ -77,7 +77,7 @@ Public web / PDF / Markdown
 
 ## Veri Kaynakları
 
-### Public / lokal kaynaklar (repoya commit edilmez)
+### Public / lokal kaynaklar
 
 | Yol | İçerik |
 |-----|--------|
@@ -86,11 +86,11 @@ Public web / PDF / Markdown
 | `data/chroma/`, `data/bm25/`, `data/processed/` | Üretilen indeksler |
 | `outputs/evaluation/` | Değerlendirme raporları |
 
-### Demo sample (repoda kalabilir)
+### Örnek veri seti
 
-`data/raw/samples/` — kurgu Markdown (yönetmelik, takvim, duyuru). Hızlı deneme için `INCLUDE_SAMPLE_DATA=true`.
+`data/raw/samples/` — kurgu Markdown (yönetmelik, takvim, duyuru). Hızlı başlangıç için `INCLUDE_SAMPLE_DATA=true`.
 
-**Gerçek okul verisi testinde** `INCLUDE_SAMPLE_DATA=false` **önerilir**; aksi halde demo metinler crawler/PDF kaynaklarıyla karışabilir.
+**Gerçek üniversite kaynaklarıyla çalışırken** `INCLUDE_SAMPLE_DATA=false` **kullanılması uygundur**; aksi halde örnek metinler crawler/PDF kaynaklarıyla karışabilir.
 
 ### Değerlendirme soru seti
 
@@ -131,7 +131,7 @@ python scripts/ingest_data.py
 | `INCLUDE_SAMPLE_DATA` | Davranış |
 |------------------------|----------|
 | `true` | `data/raw/samples` dahil |
-| `false` | Samples atlanır — Medeniyet crawl/PDF için önerilir |
+| `false` | Samples atlanır — Medeniyet crawl/PDF kaynakları için tercih edilir |
 
 Desteklenen formatlar: `.pdf`, `.md`, `.txt`, `.json` (web crawler).
 
@@ -145,7 +145,7 @@ Desteklenen formatlar: `.pdf`, `.md`, `.txt`, `.json` (web crawler).
 | `process_guidance` | `process_navigator` | Adım adım süreç rehberi |
 | `resource_recommendation` | `resource_recommender` | Open Library kitap/kaynak önerisi |
 
-**Process Navigator** dilekçe üretmez; kişisel veri toplamaz. **Petition/Application Assistant** roadmap’te; aktif özellik değildir.
+**Process Navigator** dilekçe üretmez; kişisel veri toplamaz. Dilekçe/başvuru asistanı gelecek çalışmalar kapsamındadır.
 
 ---
 
@@ -171,12 +171,11 @@ Desteklenen formatlar: `.pdf`, `.md`, `.txt`, `.json` (web crawler).
 
 Streamlit sidebar: **Sohbet** | **Yönetim Paneli**
 
-**Erişim:** Yönetim Paneli basit şifre koruması ile açılır (tam kullanıcı yönetimi / JWT değildir). Şifre `ADMIN_DASHBOARD_PASSWORD` ile `.env` üzerinden ayarlanır; ortam değişkeni yoksa lokal PoC için varsayılan `1234` kullanılır. Üretim ortamında gerçek authentication ve authorization gerekir.
+**Erişim:** Yönetim Paneli basit şifre koruması ile açılır (tam kullanıcı yönetimi / JWT değildir). Şifre `ADMIN_DASHBOARD_PASSWORD` ile `.env` üzerinden ayarlanır. Sohbet ekranı şifresiz kullanılmaya devam eder.
 
 Bölümler: Sistem Durumu · Bilgi Tabanı Durumu · Veri Hattı Durumu · Önbellek Durumu · Agent Gözlemlenebilirliği · Operasyonel Hazırlık
 
-- Endpoint: `GET /admin/diagnostics` (read-only, API anahtarı döndürmez)
-- Sohbet ekranı şifresiz kullanılmaya devam eder
+- Endpoint: `GET /admin/diagnostics` (salt okunur, API anahtarı döndürmez)
 
 ---
 
@@ -268,9 +267,9 @@ Normal sohbetten denenebilir (yönetim panelinde listelenmez):
 
 ## Proje Sınırları
 
-- Lokal PoC / demo; production hardening yok
+- Akademik bitirme projesi / lokal PoC kapsamında geliştirilmiştir
 - **Resmi üniversite uygulaması değildir**
-- Canlı OBS/API entegrasyonu yok
+- Canlı OBS/API entegrasyonu yoktur
 - Kişisel öğrenci verisi işlenmez; resmi başvuru yapılmaz
 - Login gerektiren sistemlere girilmez
 - Cevaplar yalnızca indexlenmiş kaynaklarla sınırlıdır
@@ -278,12 +277,16 @@ Normal sohbetten denenebilir (yönetim panelinde listelenmez):
 
 ---
 
-## Roadmap
+## Gelecek Çalışmalar
 
-- Petition / Application Assistant (planlı)
-- Reranker, source monitor, scheduled crawler
-- Feedback dashboard, auth / rol tabanlı erişim
-- Çoklu üniversite, OBS/API entegrasyonu
+- Dilekçe / başvuru asistanı
+- RAG reranker
+- Zamanlanmış crawler
+- Kaynak değişiklik izleme
+- Feedback dashboard
+- Rol tabanlı yetkilendirme
+- Çoklu üniversite desteği
+- OBS/API entegrasyonu
 
 ---
 
@@ -292,7 +295,7 @@ Normal sohbetten denenebilir (yönetim panelinde listelenmez):
 - `.env`, `context.md`, crawler çıktıları ve indeksler **commit edilmemeli**
 - API anahtarları yalnızca lokal `.env` içinde
 - Crawler yalnızca public sayfalar; kişisel veri toplanmaz
-- Admin paneli ve chat loglarında soru metinleri kısaltılarak gösterilir
+- Yönetim Paneli ve chat loglarında soru metinleri kısaltılarak gösterilir
 
 ---
 
@@ -303,7 +306,7 @@ Normal sohbetten denenebilir (yönetim panelinde listelenmez):
 | Değişken | Açıklama |
 |----------|----------|
 | `OPENAI_API_KEY` | OpenAI (placeholder repoda) |
-| `INCLUDE_SAMPLE_DATA` | Demo samples; gerçek veri için `false` |
+| `INCLUDE_SAMPLE_DATA` | Örnek belgeler; gerçek kaynaklar için `false` |
 | `UNIVERSITY_CRAWL_URLS` | Crawler seed URL’leri |
 | `UNIVERSITY_ALLOWED_DOMAINS` | İzinli domain |
 | `ADMIN_DASHBOARD_PASSWORD` | Yönetim Paneli şifresi (Streamlit) |
@@ -312,9 +315,7 @@ Normal sohbetten denenebilir (yönetim panelinde listelenmez):
 
 ---
 
-## Son Kontrol Komutları
-
-Sunum / tez öncesi önerilen akış:
+## Doğrulama ve Test Akışı
 
 ```bash
 source venv/bin/activate
@@ -353,7 +354,7 @@ backend/app/     API, agent, RAG, tools, db
 frontend/        Streamlit (Sohbet + Yönetim Paneli)
 data/
   raw/pdf, web/  Lokal crawl (gitignore)
-  raw/samples/   Demo Markdown
+  raw/samples/   Örnek Markdown belgeleri
   evaluation/    eval_questions.json
 scripts/         crawl, ingest, evaluate_rag, test
 outputs/evaluation/  Raporlar (gitignore)
@@ -365,4 +366,4 @@ Sürüm notları: [`CHANGELOG.md`](CHANGELOG.md)
 
 ## Lisans
 
-Repoda henüz `LICENSE` dosyası yoktur; dağıtım öncesi uygun bir açık kaynak lisansı eklenmesi önerilir.
+Bu proje akademik amaçlı bir bitirme projesi / lokal PoC çalışmasıdır. Henüz açık kaynak lisansı eklenmemiştir.
