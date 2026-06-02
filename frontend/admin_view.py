@@ -2,9 +2,37 @@
 
 from __future__ import annotations
 
+import os
+
 import streamlit as st
 
 from api_client import ApiClientError, fetch_admin_diagnostics
+
+
+def _get_admin_password() -> str:
+    """Ortam değişkeni yoksa lokal PoC varsayılanı (değer UI'da gösterilmez)."""
+    configured = os.getenv("ADMIN_DASHBOARD_PASSWORD", "").strip()
+    return configured if configured else "1234"
+
+
+def _render_admin_login_gate() -> None:
+    st.markdown("## Yönetim Paneli")
+    st.write(
+        "Bu alan sistem durumu ve operasyonel kayıtları içerir. "
+        "Lütfen yönetim şifresini girin."
+    )
+    password = st.text_input(
+        "Yönetim şifresi",
+        type="password",
+        key="admin_password_input",
+        autocomplete="off",
+    )
+    if st.button("Giriş Yap", type="primary", key="admin_login_btn"):
+        if password == _get_admin_password():
+            st.session_state.admin_authenticated = True
+            st.rerun()
+        else:
+            st.error("Şifre hatalı.")
 
 
 def _durum_etiketi(deger: str) -> str:
@@ -62,10 +90,23 @@ def _render_operational_readiness(data: dict) -> None:
 
 
 def render_admin_page() -> None:
-    st.markdown("## Yönetim Paneli")
-    st.caption(
-        "Lokal PoC ortamında sistem gözlemlenebilirliği. "
-    )
+    if not st.session_state.get("admin_authenticated"):
+        _render_admin_login_gate()
+        return
+
+    header_col, logout_col = st.columns([5, 1])
+    with header_col:
+        st.markdown("## Yönetim Paneli")
+        st.caption("Lokal PoC ortamında sistem ve veri hattı gözlemlenebilirliği.")
+    with logout_col:
+        st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
+        if st.button(
+            "Yönetim oturumunu kapat",
+            key="admin_logout_btn",
+            use_container_width=True,
+        ):
+            st.session_state.admin_authenticated = False
+            st.rerun()
 
     try:
         with st.spinner("Durum bilgileri yükleniyor…"):

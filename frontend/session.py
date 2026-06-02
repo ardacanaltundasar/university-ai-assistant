@@ -29,6 +29,8 @@ def init_session_state() -> None:
         st.session_state.flash_message = None
     if "app_page" not in st.session_state:
         st.session_state.app_page = "chat"
+    if "admin_authenticated" not in st.session_state:
+        st.session_state.admin_authenticated = False
 
 
 def reset_chat(*, clear_session_id: bool = True) -> None:

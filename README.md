@@ -171,10 +171,12 @@ Desteklenen formatlar: `.pdf`, `.md`, `.txt`, `.json` (web crawler).
 
 Streamlit sidebar: **Sohbet** | **Yönetim Paneli**
 
+**Erişim:** Yönetim Paneli basit şifre koruması ile açılır (tam kullanıcı yönetimi / JWT değildir). Şifre `ADMIN_DASHBOARD_PASSWORD` ile `.env` üzerinden ayarlanır; ortam değişkeni yoksa lokal PoC için varsayılan `1234` kullanılır. Üretim ortamında gerçek authentication ve authorization gerekir.
+
 Bölümler: Sistem Durumu · Bilgi Tabanı Durumu · Veri Hattı Durumu · Önbellek Durumu · Agent Gözlemlenebilirliği · Operasyonel Hazırlık
 
 - Endpoint: `GET /admin/diagnostics` (read-only, API anahtarı döndürmez)
-- Lokal PoC; üretimde kimlik doğrulama gerekir
+- Sohbet ekranı şifresiz kullanılmaya devam eder
 
 ---
 
@@ -304,6 +306,7 @@ Normal sohbetten denenebilir (yönetim panelinde listelenmez):
 | `INCLUDE_SAMPLE_DATA` | Demo samples; gerçek veri için `false` |
 | `UNIVERSITY_CRAWL_URLS` | Crawler seed URL’leri |
 | `UNIVERSITY_ALLOWED_DOMAINS` | İzinli domain |
+| `ADMIN_DASHBOARD_PASSWORD` | Yönetim Paneli şifresi (Streamlit) |
 | `REDIS_URL`, `ENABLE_REDIS_CACHE` | Answer cache |
 | `DATABASE_URL` | PostgreSQL |
 

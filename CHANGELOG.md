@@ -13,6 +13,7 @@
 - Restored demo samples under `data/raw/samples/` for public quick-start
 - Improved Redis answer cache key normalization to handle punctuation, casing and whitespace differences
 - Added additional Computer Engineering and faculty public source URLs to crawler configuration examples
+- Added simple password protection for Yönetim Paneli
 
 ## v0.7.0 - RAG / Agent Evaluation Script
 
