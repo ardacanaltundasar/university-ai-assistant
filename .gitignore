@@ -1,8 +1,13 @@
 # Ortam ve gizli dosyalar
 .env
-.venv/
-venv/
+.env.*
+!.env.example
 .env.backup
+context.md
+
+# Sanal ortam
+venv/
+.venv/
 
 # Python
 __pycache__/
@@ -12,7 +17,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# Veri indeksleri ve işlenmiş çıktılar (repoda tutulmaz)
+# Veri indeksleri ve işlenmiş çıktılar
 data/chroma/
 data/bm25/
 data/processed/
@@ -20,15 +25,21 @@ data/processed/
 !data/processed/chunks/.gitkeep
 *.pkl
 
-# Ham PDF'ler public repoya gitmesin; demo Markdown samples git'te kalır
-data/raw/pdf/*.pdf
-!data/raw/pdf/.gitkeep
-
-# Web crawler çıktıları (JSON) repoda tutulmaz
-data/raw/web/*.json
+# Ham crawler/PDF çıktıları (generated/local)
+data/raw/web/*
 !data/raw/web/.gitkeep
 
-# IDE
+data/raw/pdf/*
+!data/raw/pdf/.gitkeep
+
+# Devre dışı / yedek sample klasörü
+data/raw/samples_disabled/
+
+# Değerlendirme raporları (soru seti data/evaluation/ altında kalır)
+outputs/evaluation/*
+!outputs/evaluation/.gitkeep
+
+# IDE / OS
 .idea/
 .vscode/
 *.swp
@@ -37,11 +48,5 @@ data/raw/web/*.json
 # Jupyter
 .ipynb_checkpoints/
 
-# Docker
+# Docker / log
 *.log
-
-# Değerlendirme raporları (soru seti data/evaluation/ altında kalır)
-outputs/evaluation/
-
-# context.md
-context.md

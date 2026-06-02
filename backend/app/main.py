@@ -39,9 +39,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="University AI Agent API",
-    description="Üniversite Öğrenci İşleri AI Asistanı — PoC backend",
-    version="0.1.0",
+    title="Medeniyet Üniversitesi AI Asistan API",
+    description=(
+        "İstanbul Medeniyet Üniversitesi public kaynakları üzerinde çalışan "
+        "RAG tabanlı AI asistan — akademik lokal PoC (resmi üniversite uygulaması değildir)."
+    ),
+    version="0.7.0",
     lifespan=lifespan,
 )
 
@@ -58,4 +61,8 @@ app.include_router(router, tags=["api"])
 
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"message": "University AI Agent API", "docs": "/docs", "health": "/health"}
+    return {
+        "message": "Medeniyet Üniversitesi AI Asistan API",
+        "docs": "/docs",
+        "health": "/health",
+    }

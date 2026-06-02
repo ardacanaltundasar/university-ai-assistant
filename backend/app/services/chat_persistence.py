@@ -194,7 +194,7 @@ def run_chat_with_persistence(db: Session | None, request: ChatRequest) -> ChatR
 
         if settings.enable_redis_cache:
             response = _append_agent_step(response, CACHE_MISS_STEP)
-            if is_answer_cacheable(response, agent_status):
+            if is_answer_cacheable(response, agent_status, question=question):
                 payload = response_to_cache_payload(response, intent)
                 if set_cached_answer(question, payload, intent=intent):
                     response = _append_agent_step(response, CACHE_SAVED_STEP)

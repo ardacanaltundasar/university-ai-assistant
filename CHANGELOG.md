@@ -1,5 +1,19 @@
 # Changelog
 
+## Final Polish - Jury Ready Release
+
+- Updated project naming to **Medeniyet Üniversitesi AI Asistanı**
+- Clarified that the project is an academic local PoC and not an official university application
+- Updated README for final project presentation
+- Updated local context documentation
+- Clarified data source and generated-file policy
+- Clarified system limitations and roadmap
+- Added final testing checklist
+- Cleaned documentation wording for a professional presentation
+- Restored demo samples under `data/raw/samples/` for public quick-start
+- Improved Redis answer cache key normalization to handle punctuation, casing and whitespace differences
+- Added additional Computer Engineering and faculty public source URLs to crawler configuration examples
+
 ## v0.7.0 - RAG / Agent Evaluation Script
 
 - Added evaluation question set (`data/evaluation/eval_questions.json`)

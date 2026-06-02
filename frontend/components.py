@@ -23,6 +23,16 @@ def strip_inline_sources(answer: str) -> str:
     return answer.strip()
 
 
+PROJECT_TITLE = "Medeniyet Üniversitesi AI Asistanı"
+PROJECT_TAGLINE = (
+    "İstanbul Medeniyet Üniversitesi public kaynakları üzerinde çalışan "
+    "RAG tabanlı yapay zekâ asistanı."
+)
+DISCLAIMER_FOOTER = (
+    "Akademik amaçlı lokal PoC çalışmasıdır; resmi üniversite uygulaması değildir."
+)
+
+
 def render_page_nav(*, on_select_page) -> None:
     """Sohbet ↔ Yönetim Paneli geçişi (sidebar üst)."""
     with st.sidebar:
@@ -42,7 +52,7 @@ def render_page_nav(*, on_select_page) -> None:
 def render_sidebar(*, on_new_chat, on_load_session, on_delete_session) -> None:
     with st.sidebar:
         st.markdown(
-            '<p class="sidebar-brand">Üniversite AI Asistanı</p>',
+            f'<p class="sidebar-brand">{PROJECT_TITLE}</p>',
             unsafe_allow_html=True,
         )
 
@@ -77,6 +87,7 @@ def render_sidebar(*, on_new_chat, on_load_session, on_delete_session) -> None:
                     ):
                         on_delete_session(sid)
 
+        st.caption(DISCLAIMER_FOOTER)
         st.markdown(
             '<p class="sidebar-footer">Ardacan Altundaşar</p>',
             unsafe_allow_html=True,
@@ -88,16 +99,16 @@ def render_header() -> None:
     if has_messages():
         st.markdown(
             '<p class="hero-title" style="font-size:1.25rem;margin-bottom:1rem;">'
-            "Üniversite AI Asistanı</p>",
+            f"{PROJECT_TITLE}</p>",
             unsafe_allow_html=True,
         )
         return
-    st.markdown('<h1 class="hero-title">Üniversite AI Asistanı</h1>', unsafe_allow_html=True)
+    st.markdown(f'<h1 class="hero-title">{PROJECT_TITLE}</h1>', unsafe_allow_html=True)
     st.markdown(
-        '<p class="hero-subtitle">Yüklenen akademik belgeler, yönetmelikler ve '
-        "duyurular üzerinden kaynaklı cevaplar sunar.</p>",
+        f'<p class="hero-subtitle">{PROJECT_TAGLINE}</p>',
         unsafe_allow_html=True,
     )
+    st.caption(DISCLAIMER_FOOTER)
 
 
 def render_suggestion_cards(on_select) -> None:

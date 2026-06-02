@@ -1,6 +1,6 @@
 """
-Üniversite Öğrenci İşleri AI Asistanı — Streamlit arayüzü.
-ChatGPT / Gemini benzeri sohbet deneyimi + Yönetim Paneli.
+Medeniyet Üniversitesi AI Asistanı — Streamlit arayüzü.
+Sohbet + Yönetim Paneli (akademik lokal PoC; resmi üniversite uygulaması değildir).
 """
 
 import streamlit as st
@@ -40,7 +40,7 @@ CHAT_PLACEHOLDER = (
 
 
 st.set_page_config(
-    page_title="Üniversite AI Asistanı",
+    page_title="Medeniyet Üniversitesi AI Asistanı",
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded",

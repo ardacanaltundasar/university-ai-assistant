@@ -64,8 +64,7 @@ def _render_operational_readiness(data: dict) -> None:
 def render_admin_page() -> None:
     st.markdown("## Yönetim Paneli")
     st.caption(
-        "Lokal PoC ortamında sistem ve veri hattı gözlemlenebilirliği. "
-        "Üretim ortamında bu ekran kimlik doğrulama ile korunmalıdır."
+        "Lokal PoC ortamında sistem gözlemlenebilirliği. "
     )
 
     try:

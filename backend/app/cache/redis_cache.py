@@ -21,7 +21,9 @@ _redis_unavailable_logged = False
 
 CACHE_MISS_STEP = "Redis cache miss: agent akışı çalıştırıldı"
 CACHE_SAVED_STEP = "Cevap Redis cache'e kaydedildi"
-CACHE_HIT_STEP = "Redis cache hit: cevap önbellekten alındı"
+CACHE_HIT_STEP = (
+    "Redis cache hit: normalize edilmiş soru anahtarıyla önbellekten alındı"
+)
 
 _ERROR_STEP_MARKERS = (
     "Beklenmeyen bir hata",
@@ -32,13 +34,85 @@ _ERROR_STEP_MARKERS = (
 )
 
 
+# Cache key üretiminde kaldırılacak noktalama (Türkçe harfler korunur)
+_PUNCTUATION_CHARS = '.,?!:;"\'()[]{}'
+_PUNCT_TRANSLATION = str.maketrans("", "", _PUNCTUATION_CHARS)
+
+# Kişisel / başvuru içerikleri — okuma ve yazma bypass
+_CACHE_BYPASS_PHRASES: tuple[str, ...] = (
+    "dilekçe",
+    "dilekce",
+    "petition",
+    "başvuru metni",
+    "basvuru metni",
+    "dilekçe hazırla",
+    "dilekce hazirla",
+    "dilekçe yaz",
+    "dilekce yaz",
+    "dilekçe oluştur",
+    "dilekce olustur",
+    "öğrenci numaram",
+    "ogrenci numaram",
+    "öğrenci numarası",
+    "ogrenci numarasi",
+    "öğrenci numar",
+    "ogrenci numar",
+    "tc kimlik",
+    "t.c. kimlik",
+    "kimlik numaram",
+    "kimlik no",
+)
+
+
+def normalize_question_for_cache(question: str | None) -> str:
+    """
+    Cache anahtarı için güvenli soru normalizasyonu.
+    Büyük/küçük harf, noktalama ve fazla boşluk farklarını giderir.
+    """
+    if not question:
+        return ""
+    text = str(question).replace("\n", " ").replace("\r", " ")
+    text = re.sub(r"\s+", " ", text.strip().lower())
+    text = text.translate(_PUNCT_TRANSLATION)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
 def normalize_question(question: str) -> str:
-    """Lower-case, trim, fazla boşlukları tek boşluğa indir; Türkçe karakterleri korur."""
-    return re.sub(r"\s+", " ", question.strip().lower())
+    """Geriye dönük uyumluluk — cache normalizasyonu."""
+    return normalize_question_for_cache(question)
+
+
+def is_question_cache_eligible(question: str) -> bool:
+    """Kişisel/başvuru içerikleri ve boş sorular cache dışı bırakılır."""
+    normalized = normalize_question_for_cache(question)
+    if not normalized:
+        return False
+
+    q = question.lower()
+    for phrase in _CACHE_BYPASS_PHRASES:
+        if phrase in q:
+            return False
+
+    if re.search(r"\b\d{11}\b", q):
+        return False
+    if re.search(r"numaram\s*\d", q):
+        return False
+
+    try:
+        from backend.app.agent.intent import classify_intent_rules
+
+        intent = classify_intent_rules(question)
+        if intent == "petition_generation":
+            return False
+    except Exception:
+        pass
+
+    return True
 
 
 def build_answer_cache_key(question: str, intent: str | None = None) -> str:
-    normalized = normalize_question(question)
+    normalized = normalize_question_for_cache(question)
     intent_part = intent or "unknown"
     digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:32]
     return f"answer_cache:{intent_part}:{digest}"
@@ -77,12 +151,28 @@ def get_redis_client() -> redis.Redis | None:
         return None
 
 
+def _log_cache_key_debug(question: str, intent: str | None, *, event: str) -> None:
+    normalized = normalize_question_for_cache(question)
+    logger.debug(
+        "Redis cache %s intent=%s raw_len=%d normalized_len=%d normalized_preview=%r",
+        event,
+        intent or "unknown",
+        len(question),
+        len(normalized),
+        normalized[:120],
+    )
+
+
 def get_cached_answer(question: str, intent: str | None = None) -> dict | None:
+    if not is_question_cache_eligible(question):
+        return None
+
     client = get_redis_client()
     if client is None:
         return None
 
     key = build_answer_cache_key(question, intent=intent)
+    _log_cache_key_debug(question, intent, event="lookup")
     try:
         raw = client.get(key)
         if not raw:
@@ -102,6 +192,9 @@ def set_cached_answer(
     intent: str | None = None,
     ttl_seconds: int | None = None,
 ) -> bool:
+    if not is_question_cache_eligible(question):
+        return False
+
     client = get_redis_client()
     if client is None:
         return False
@@ -109,6 +202,7 @@ def set_cached_answer(
     settings = get_settings()
     ttl = ttl_seconds if ttl_seconds is not None else settings.redis_cache_ttl_seconds
     key = build_answer_cache_key(question, intent=intent)
+    _log_cache_key_debug(question, intent, event="store")
 
     try:
         client.setex(key, ttl, json.dumps(payload, ensure_ascii=False))
@@ -118,8 +212,16 @@ def set_cached_answer(
         return False
 
 
-def is_answer_cacheable(response: ChatResponse, agent_status: str) -> bool:
+def is_answer_cacheable(
+    response: ChatResponse,
+    agent_status: str,
+    *,
+    question: str | None = None,
+) -> bool:
     """Yalnızca başarılı, anlamlı cevaplar cache'lenir."""
+    if question is not None and not is_question_cache_eligible(question):
+        return False
+
     if agent_status not in ("completed",):
         return False
 

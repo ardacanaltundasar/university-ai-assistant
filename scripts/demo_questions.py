@@ -74,7 +74,7 @@ def evaluate(question: str, response) -> tuple[bool, str]:
 
 
 def main() -> None:
-    print("University AI Agent — Demo Test\n" + "=" * 60)
+    print("Medeniyet Üniversitesi AI Asistanı — Demo Test\n" + "=" * 60)
     passed = 0
     failed = 0
 
